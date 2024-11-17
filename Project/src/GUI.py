@@ -3,7 +3,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from scheduler import Scheduler
-from metrics import calculate_metrics
 from process import Process
 import matplotlib.pyplot as plt
 from metrics import calculate_metrics, plot_gantt_chart, plot_histograms
