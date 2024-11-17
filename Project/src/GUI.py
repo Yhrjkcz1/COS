@@ -107,8 +107,11 @@ class SchedulerGUI:
                 messagebox.showerror("Input Error", "Please enter a valid integer for Time Quantum.")
                 return
 
+        # Get context switches from the scheduler
+        context_switches = scheduler.get_context_switches()
+
         # Calculate metrics after scheduling
-        metrics = calculate_metrics(self.processes)
+        metrics = calculate_metrics(self.processes, context_switches)
 
         # Display the results
         self.output_text.insert(tk.END, "\n--- Simulation Results ---\n")
