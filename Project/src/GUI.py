@@ -11,6 +11,15 @@ class SchedulerGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("CPU Scheduling Simulator")
+        # 配置列的权重
+        self.root.grid_columnconfigure(0, weight=1)  # 第 0 列权重为 1
+        self.root.grid_columnconfigure(1, weight=1)  # 第 1 列权重为 1
+        self.root.grid_columnconfigure(2, weight=1)  # 第 2 列权重为 1
+        self.root.grid_columnconfigure(3, weight=1)  # 第 3 列权重为 1
+
+        # 配置行的权重
+        self.root.grid_rowconfigure(5, weight=1)  # 第 5 行（输出区域）占据更多空间
+
         self.processes = []
 
         # Title Label
@@ -18,10 +27,11 @@ class SchedulerGUI:
         title.grid(row=0, column=0, columnspan=4, pady=10)
 
         # Process input fields
-        tk.Label(root, text="Process ID").grid(row=1, column=0)
-        tk.Label(root, text="Arrival Time").grid(row=1, column=1)
-        tk.Label(root, text="Burst Time").grid(row=1, column=2)
-        tk.Label(root, text="Priority").grid(row=1, column=3)
+        tk.Label(root, text="Process ID").grid(row=1, column=0, padx=10, pady=5, sticky="EW")
+        tk.Label(root, text="Arrival Time").grid(row=1, column=1, padx=10, pady=5, sticky="EW")
+        tk.Label(root, text="Burst Time").grid(row=1, column=2, padx=10, pady=5, sticky="EW")
+        tk.Label(root, text="Priority").grid(row=1, column=3, padx=10, pady=5, sticky="EW")
+
 
         self.process_id = tk.Entry(root)
         self.arrival_time = tk.Entry(root)
@@ -159,5 +169,6 @@ class SchedulerGUI:
 
 if __name__ == "__main__":
     root = tk.Tk()
+    root.geometry("1000x700")  # 设置窗口大小为 1000x700 像素
     app = SchedulerGUI(root)
     root.mainloop()
