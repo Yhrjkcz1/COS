@@ -21,13 +21,14 @@ class SchedulerGUI:
         self.root.grid_rowconfigure(5, weight=1)  # 输出区域占据更多空间
 
         self.processes = []
+        self.input_entries = []  # 用于存储输入框的引用
 
         # 设置字体和背景颜色
         self.root.configure(bg="#f4f4f4")  # 背景浅灰色
-        default_font = ("Helvetica", 12)
+        default_font = ("Helvetica", 14)
 
         # 标题
-        title = tk.Label(root, text="CPU Scheduling Simulator", font=("Helvetica", 18, "bold"), bg="#f4f4f4")
+        title = tk.Label(root, text="CPU Scheduling Simulator", font=("Helvetica", 20, "bold"), bg="#f4f4f4")
         title.grid(row=0, column=0, columnspan=4, pady=20)
 
         # 输入区域
@@ -35,11 +36,18 @@ class SchedulerGUI:
         tk.Label(root, text="Arrival Time", font=default_font, bg="#f4f4f4").grid(row=1, column=1, padx=10, pady=5)
         tk.Label(root, text="Burst Time", font=default_font, bg="#f4f4f4").grid(row=1, column=2, padx=10, pady=5)
         tk.Label(root, text="Priority", font=default_font, bg="#f4f4f4").grid(row=1, column=3, padx=10, pady=5)
-
-        self.process_id = tk.Entry(root, font=default_font)
-        self.arrival_time = tk.Entry(root, font=default_font)
-        self.burst_time = tk.Entry(root, font=default_font)
-        self.priority = tk.Entry(root, font=default_font)
+            # 输入框
+        self.process_id = self.create_entry(root, row=2, column=0)
+        self.arrival_time = self.create_entry(root, row=2, column=1)
+        self.burst_time = self.create_entry(root, row=2, column=2)
+        self.priority = self.create_entry(root, row=2, column=3)
+            # 添加到输入框列表
+        self.input_entries = [
+            self.process_id,
+            self.arrival_time,
+            self.burst_time,
+            self.priority
+        ]
 
         self.process_id.grid(row=2, column=0, padx=10, pady=5)
         self.arrival_time.grid(row=2, column=1, padx=10, pady=5)
@@ -73,6 +81,12 @@ class SchedulerGUI:
 
         self.output_text = tk.Text(output_frame, height=20, wrap="word", font=("Helvetica", 10))
         self.output_text.grid(row=0, column=0, sticky="nsew")
+        # 输出区域
+        self.metrics_frame = tk.Frame(root, bg="#f4f4f4")
+        self.metrics_frame.grid(row=6, column=0, columnspan=2, sticky="nsew")
+
+        self.figure_frame = tk.Frame(root, bg="#f4f4f4")
+        self.figure_frame.grid(row=6, column=2, columnspan=2, sticky="nsew")
 
         # 滚动条
         scrollbar = tk.Scrollbar(output_frame, orient="vertical", command=self.output_text.yview)
@@ -98,72 +112,130 @@ class SchedulerGUI:
             messagebox.showerror("Input Error", "Please enter valid integer values for Arrival, Burst, and Priority times.")
 
     def run_simulation(self):
+        """运行选定的调度算法并更新 GUI"""
         algorithm = self.algorithm_var.get()
+        time_quantum = self.time_quantum.get()
+
         if not algorithm:
-            messagebox.showerror("Algorithm Error", "Please select a scheduling algorithm.")
+            messagebox.showerror("Error", "Please select a scheduling algorithm.")
             return
 
+        # 确保时间片是有效数字（仅适用于 Round Robin）
+        if algorithm == "Round Robin" and (not time_quantum.isdigit() or int(time_quantum) <= 0):
+            messagebox.showerror("Error", "Please enter a valid positive integer for the time quantum.")
+            return
+
+        # 初始化调度器和进程
         scheduler = Scheduler(self.processes)
+        quantum = int(time_quantum) if time_quantum.isdigit() else None
 
-        try:
-            if algorithm == "FCFS":
-                scheduler.fcfs()
-            elif algorithm == "SJF-Non":
-                scheduler.sjf_non_preemptive()
-            elif algorithm == "SJF-Preemptive":
-                scheduler.sjf_preemptive()
-            elif algorithm == "Priority Scheduling":
-                scheduler.priority_scheduling()
-            elif algorithm == "Round Robin":
-                quantum = int(self.time_quantum.get())
-                scheduler.round_robin(quantum)
-            else:
-                raise ValueError("Unsupported algorithm")
-        except ValueError as e:
-            messagebox.showerror("Input Error", str(e))
-            return
+        # 调用相应的调度算法
+        if algorithm == "FCFS":
+            scheduler.fcfs()
+        elif algorithm == "SJF-Non":
+            scheduler.sjf_non_preemptive()
+        elif algorithm == "SJF-Preemptive":
+            scheduler.sjf_preemptive()
+        elif algorithm == "Priority Scheduling":
+            scheduler.priority_scheduling()
+        elif algorithm == "Round Robin":
+            scheduler.round_robin(quantum)
 
-        context_switches = scheduler.get_context_switches()
-        metrics = calculate_metrics(self.processes, context_switches)
+        # 收集性能指标
+        metrics = {
+            "Average Waiting Time": sum(p.waiting_time for p in self.processes) / len(self.processes),
+            "Average Turnaround Time": sum(p.turnaround_time for p in self.processes) / len(self.processes),
+            "Context Switches": scheduler.get_context_switches(),
+        }
 
-        self.output_text.insert(tk.END, "\n--- Simulation Results ---\n")
+        # 更新输出区域
+        self.output_text.delete("1.0", tk.END)
+        self.output_text.insert(tk.END, f"Scheduling Algorithm: {algorithm}\n\n")
         for process in self.processes:
-            self.output_text.insert(tk.END, f"Process {process.pid}: Start Time: {process.start_time}, Waiting Time: {process.waiting_time}, Turnaround Time: {process.turnaround_time}\n")
+            self.output_text.insert(
+                tk.END,
+                f"Process {process.pid} -> Arrival: {process.arrival_time}, "
+                f"Burst: {process.burst_time}, Start: {process.start_time}, "
+                f"Completion: {process.completion_time}, Waiting: {process.waiting_time}, "
+                f"Turnaround: {process.turnaround_time}\n"
+            )
 
-        self.output_text.insert(tk.END, "\n--- Performance Metrics ---\n")
-        for metric, value in metrics.items():
-            self.output_text.insert(tk.END, f"{metric}: {value}\n")
+        # 调用图形更新
+        self.display_metrics(metrics)           # 显示性能指标
+        self.display_gantt_chart(self.processes)  # 显示甘特图
+        self.display_histograms(self.processes)  # 显示直方图
 
-        self.processes.clear()
     def display_metrics(self, metrics):
-        # Display each metric in a more compact way
-        pass
+        """显示性能指标"""
+        for widget in self.metrics_frame.winfo_children():
+            widget.destroy()  # 清除旧的指标
 
-    def display_gantt_chart(self):
-        # Generate Gantt chart figure
-        fig, ax = plt.subplots()
-        plot_gantt_chart(self.processes)
+        tk.Label(self.metrics_frame, text="Performance Metrics", font=("Helvetica", 14, "bold")).grid(row=0, column=0, columnspan=2)
 
-        # Embed chart in GUI
-        canvas = FigureCanvasTkAgg(fig, master=self.root)
+        row = 1
+        for metric, value in metrics.items():
+            tk.Label(self.metrics_frame, text=f"{metric}:").grid(row=row, column=0, padx=10, sticky="W")
+            tk.Label(self.metrics_frame, text=f"{value:.2f}").grid(row=row, column=1, padx=10, sticky="E")
+            row += 1
+
+    def display_gantt_chart(self, processes):
+        """显示甘特图"""
+        for widget in self.figure_frame.winfo_children():
+            widget.destroy()  # 清除旧图表
+
+        fig, ax = plt.subplots(figsize=(8, 4))
+        # 假设 plot_gantt_chart 是一个生成甘特图的函数
+        plot_gantt_chart(processes, ax)
+
+        canvas = FigureCanvasTkAgg(fig, master=self.figure_frame)
         canvas.draw()
-        canvas.get_tk_widget().grid(row=5, column=0, columnspan=4)
+        canvas.get_tk_widget().pack()
 
-    def display_histograms(self):
-        # Generate histogram figure
-        fig, ax = plt.subplots()
-        plot_histograms(self.processes)
+    def display_histograms(self, processes):
+        """显示直方图"""
+        for widget in self.figure_frame.winfo_children():
+            widget.destroy()  # 清除旧图表
 
-        # Embed histogram in GUI
-        canvas = FigureCanvasTkAgg(fig, master=self.root)
+        fig, ax = plt.subplots(figsize=(8, 4))
+        # 假设 plot_histograms 是一个生成直方图的函数
+        plot_histograms(processes, ax)
+
+        canvas = FigureCanvasTkAgg(fig, master=self.figure_frame)
         canvas.draw()
-        canvas.get_tk_widget().grid(row=6, column=0, columnspan=4)
+        canvas.get_tk_widget().pack()
+        # 添加 Entry 并绑定方向键事件
+    def create_entry(self, root, row, column):
+        entry = tk.Entry(root)
+        entry.grid(row=row, column=column, padx=10, pady=5)
+
+        # 绑定箭头键事件
+        entry.bind("<Up>", self.focus_up)
+        entry.bind("<Down>", self.focus_down)
+        entry.bind("<Left>", self.focus_left)
+        entry.bind("<Right>", self.focus_right)
+        return entry
+
+    def focus_up(self, event):
+        index = self.input_entries.index(event.widget)
+        if index >= 4:  # 确保至少有一行在上方
+            self.input_entries[index - 4].focus_set()
+
+    def focus_down(self, event):
+        index = self.input_entries.index(event.widget)
+        if index + 4 < len(self.input_entries):  # 确保有一行在下方
+            self.input_entries[index + 4].focus_set()
+
+    def focus_left(self, event):
+        index = self.input_entries.index(event.widget)
+        if index % 4 != 0:  # 确保不是最左列
+            self.input_entries[index - 1].focus_set()
+
+    def focus_right(self, event):
+        index = self.input_entries.index(event.widget)
+        if index % 4 != 3 and index + 1 < len(self.input_entries):  # 确保不是最右列
+            self.input_entries[index + 1].focus_set()
 
 if __name__ == "__main__":
     root = tk.Tk()
     app = SchedulerGUI(root)
     root.mainloop()
-
-
-
-
