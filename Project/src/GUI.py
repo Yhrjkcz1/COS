@@ -43,7 +43,7 @@ class SchedulerGUI:
         # Algorithm Selection
         tk.Label(root, text="Choose Algorithm").grid(row=4, column=0, pady=10)
         self.algorithm_var = tk.StringVar()
-        algorithms = ["FCFS", "SJF", "Priority Scheduling", "Round Robin"]
+        algorithms = ["FCFS", "SJF-Non", "Priority Scheduling", "Round Robin"]
         self.algorithm_menu = ttk.Combobox(root, textvariable=self.algorithm_var, values=algorithms)
         self.algorithm_menu.grid(row=4, column=1)
 
