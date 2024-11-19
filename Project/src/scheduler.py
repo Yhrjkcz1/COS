@@ -16,9 +16,9 @@ class Scheduler:
             process.completion_time = current_time
             process.turnaround_time = process.completion_time - process.arrival_time
 
-    def sjf(self):
+    def sjf_non_preemptive(self):
         """Shortest Job First (Non-preemptive) Scheduling"""
-        print("Running SJF Scheduling...")
+        print("Running SJF (Non-preemptive) Scheduling...")
         current_time = 0
         remaining_processes = sorted(self.processes, key=lambda p: p.arrival_time)
 
@@ -45,6 +45,42 @@ class Scheduler:
                 remaining_processes.remove(shortest_process)
             else:
                 current_time += 1  # Increment time if no processes are available yet
+
+    def sjf_preemptive(self):
+        """Shortest Job First (Preemptive) Scheduling"""
+        print("Running SJF (Preemptive) Scheduling...")
+        current_time = 0
+        remaining_processes = sorted(self.processes, key=lambda p: p.arrival_time)
+        ready_queue = []
+
+        while remaining_processes or ready_queue:
+            # Move processes from remaining_processes to ready_queue as time passes
+            while remaining_processes and remaining_processes[0].arrival_time <= current_time:
+                ready_queue.append(remaining_processes.pop(0))
+
+            if ready_queue:
+                # Sort ready_queue by remaining burst time
+                ready_queue.sort(key=lambda p: p.remaining_time)
+                # Pick the process with the shortest remaining burst time
+                shortest_process = ready_queue[0]
+
+                if shortest_process.start_time == -1:  # This means the process hasn't started yet
+                    shortest_process.start_time = current_time
+                    self.context_switches += 1  # Increment context switch
+                    print(f"Process {shortest_process.pid} started at {shortest_process.start_time}")
+
+                # Execute process for 1 time unit
+                shortest_process.remaining_time -= 1
+                current_time += 1
+
+                if shortest_process.remaining_time == 0:
+                    shortest_process.completion_time = current_time
+                    shortest_process.turnaround_time = shortest_process.completion_time - shortest_process.arrival_time
+                    shortest_process.waiting_time = shortest_process.turnaround_time - shortest_process.burst_time
+                    ready_queue.remove(shortest_process)  # Process is completed and removed from queue
+            else:
+                current_time += 1  # Increment time if no processes are ready
+
     def priority_scheduling(self):
         """Priority Scheduling (Non-preemptive)"""
         current_time = 0
