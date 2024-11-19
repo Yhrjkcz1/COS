@@ -36,12 +36,12 @@ class SchedulerGUI:
         tk.Label(root, text="Arrival Time", font=default_font, bg="#f4f4f4").grid(row=1, column=1, padx=10, pady=5)
         tk.Label(root, text="Burst Time", font=default_font, bg="#f4f4f4").grid(row=1, column=2, padx=10, pady=5)
         tk.Label(root, text="Priority", font=default_font, bg="#f4f4f4").grid(row=1, column=3, padx=10, pady=5)
-            # 输入框
+        # 输入框
         self.process_id = self.create_entry(root, row=2, column=0)
         self.arrival_time = self.create_entry(root, row=2, column=1)
         self.burst_time = self.create_entry(root, row=2, column=2)
         self.priority = self.create_entry(root, row=2, column=3)
-            # 添加到输入框列表
+        # 添加到输入框列表
         self.input_entries = [
             self.process_id,
             self.arrival_time,
@@ -60,6 +60,12 @@ class SchedulerGUI:
 
         run_simulation_btn = tk.Button(root, text="Run Simulation", font=default_font, bg="#c9daf8", command=self.run_simulation)
         run_simulation_btn.grid(row=3, column=3, pady=15)
+        # 字体放大按钮
+        increase_font_btn = tk.Button(root, text="Increase Font Size", font=default_font, command=self.increase_output_font)
+        increase_font_btn.grid(row=7, column=0, pady=10)
+        # 字体缩小按钮
+        decrease_font_btn = tk.Button(root, text="Decrease Font Size", font=default_font, command=self.decrease_output_font)
+        decrease_font_btn.grid(row=7, column=1, pady=10)
 
         # 算法选择区域
         tk.Label(root, text="Choose Algorithm", font=default_font, bg="#f4f4f4").grid(row=4, column=0, pady=10)
@@ -79,7 +85,7 @@ class SchedulerGUI:
         output_frame.grid_rowconfigure(0, weight=1)
         output_frame.grid_columnconfigure(0, weight=1)
 
-        self.output_text = tk.Text(output_frame, height=20, wrap="word", font=("Helvetica", 10))
+        self.output_text = tk.Text(output_frame, height=20, wrap="word", font=("Helvetica", 14))
         self.output_text.grid(row=0, column=0, sticky="nsew")
         # 输出区域
         self.metrics_frame = tk.Frame(root, bg="#f4f4f4")
@@ -234,6 +240,18 @@ class SchedulerGUI:
         index = self.input_entries.index(event.widget)
         if index % 4 != 3 and index + 1 < len(self.input_entries):  # 确保不是最右列
             self.input_entries[index + 1].focus_set()
+    def increase_output_font(self):
+        """增加输出区域的字体大小"""
+        current_font = self.output_text.cget("font")
+        family, size, *rest = current_font.split()
+        new_size = int(size) + 2  # 增加字体大小
+        self.output_text.configure(font=(family, new_size))
+    def decrease_output_font(self):
+        """缩小输出区域的字体大小"""
+        current_font = self.output_text.cget("font")
+        family, size, *rest = current_font.split()
+        new_size = max(10, int(size) - 2)  # 保证字体大小不小于 10
+        self.output_text.configure(font=(family, new_size))
 
 if __name__ == "__main__":
     root = tk.Tk()
