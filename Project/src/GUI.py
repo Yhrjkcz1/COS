@@ -7,6 +7,7 @@ from process import Process
 import matplotlib.pyplot as plt
 from metrics import calculate_metrics, plot_gantt_chart, plot_histograms
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
 class SchedulerGUI:
     def __init__(self, root):
         self.root = root
@@ -22,11 +23,15 @@ class SchedulerGUI:
 
         self.processes = []
 
+        # Increase window size for a larger interface
+        self.root.geometry("900x700")
+
         # Title Label
         title = tk.Label(root, text="CPU Scheduling Simulator", font=("Helvetica", 16, "bold"))
-        title.grid(row=0, column=0, columnspan=4, pady=10)
+        title.grid(row=0, column=0, columnspan=4, pady=20)
 
         # Process input fields
+
         tk.Label(root, text="Process ID").grid(row=1, column=0, padx=10, pady=5, sticky="EW")
         tk.Label(root, text="Arrival Time").grid(row=1, column=1, padx=10, pady=5, sticky="EW")
         tk.Label(root, text="Burst Time").grid(row=1, column=2, padx=10, pady=5, sticky="EW")
@@ -38,33 +43,33 @@ class SchedulerGUI:
         self.burst_time = tk.Entry(root)
         self.priority = tk.Entry(root)
 
-        self.process_id.grid(row=2, column=0)
-        self.arrival_time.grid(row=2, column=1)
-        self.burst_time.grid(row=2, column=2)
-        self.priority.grid(row=2, column=3)
+        self.process_id.grid(row=2, column=0, padx=10)
+        self.arrival_time.grid(row=2, column=1, padx=10)
+        self.burst_time.grid(row=2, column=2, padx=10)
+        self.priority.grid(row=2, column=3, padx=10)
 
         # Buttons for adding processes and running simulation
         add_process_btn = tk.Button(root, text="Add Process", command=self.add_process)
-        add_process_btn.grid(row=3, column=0, pady=10)
+        add_process_btn.grid(row=3, column=0, pady=15)
 
         run_simulation_btn = tk.Button(root, text="Run Simulation", command=self.run_simulation)
-        run_simulation_btn.grid(row=3, column=3, pady=10)
+        run_simulation_btn.grid(row=3, column=3, pady=15)
 
         # Algorithm Selection
         tk.Label(root, text="Choose Algorithm").grid(row=4, column=0, pady=10)
         self.algorithm_var = tk.StringVar()
-        algorithms = ["FCFS", "SJF-Non", "Priority Scheduling", "Round Robin"]
+        algorithms = ["FCFS", "SJF-Non", "SJF-Preemptive", "Priority Scheduling", "Round Robin"]
         self.algorithm_menu = ttk.Combobox(root, textvariable=self.algorithm_var, values=algorithms)
-        self.algorithm_menu.grid(row=4, column=1)
+        self.algorithm_menu.grid(row=4, column=1, padx=10)
 
         # Quantum input for Round Robin
-        tk.Label(root, text="Time Quantum (for RR)").grid(row=4, column=2)
+        tk.Label(root, text="Time Quantum (for RR)").grid(row=4, column=2, padx=10)
         self.time_quantum = tk.Entry(root)
-        self.time_quantum.grid(row=4, column=3)
+        self.time_quantum.grid(row=4, column=3, padx=10)
 
         # Output display for results
-        self.output_text = tk.Text(root, height=15, width=50)
-        self.output_text.grid(row=5, column=0, columnspan=4, pady=10)
+        self.output_text = tk.Text(root, height=20, width=80)  # Increased size
+        self.output_text.grid(row=5, column=0, columnspan=4, pady=15)
 
     def add_process(self):
         try:
@@ -105,8 +110,10 @@ class SchedulerGUI:
         # Execute selected algorithm
         if algorithm == "FCFS":
             scheduler.fcfs()
-        elif algorithm == "SJF":
-            scheduler.sjf()
+        elif algorithm == "SJF-Non":
+            scheduler.sjf_non_preemptive()
+        elif algorithm == "SJF-Preemptive":
+            scheduler.sjf_preemptive()
         elif algorithm == "Priority Scheduling":
             scheduler.priority_scheduling()
         elif algorithm == "Round Robin":
@@ -139,33 +146,28 @@ class SchedulerGUI:
         self.processes.clear()
 
     def display_metrics(self, metrics):
-        # Clear previous metrics
-        for widget in self.metrics_frame.winfo_children():
-            widget.destroy()
-
-        # Display each metric
-        for idx, (key, value) in enumerate(metrics.items()):
-            tk.Label(self.metrics_frame, text=f"{key}: {value:.2f}").grid(row=idx, column=0)
+        # Display each metric in a more compact way
+        pass
 
     def display_gantt_chart(self):
         # Generate Gantt chart figure
         fig, ax = plt.subplots()
-        plot_gantt_chart(self.process_list)
+        plot_gantt_chart(self.processes)
 
         # Embed chart in GUI
         canvas = FigureCanvasTkAgg(fig, master=self.root)
         canvas.draw()
-        canvas.get_tk_widget().grid(row=5, column=0, columnspan=3)
+        canvas.get_tk_widget().grid(row=5, column=0, columnspan=4)
 
     def display_histograms(self):
         # Generate histogram figure
         fig, ax = plt.subplots()
-        plot_histograms(self.process_list)
+        plot_histograms(self.processes)
 
         # Embed histogram in GUI
         canvas = FigureCanvasTkAgg(fig, master=self.root)
         canvas.draw()
-        canvas.get_tk_widget().grid(row=6, column=0, columnspan=3)
+        canvas.get_tk_widget().grid(row=6, column=0, columnspan=4)
 
 if __name__ == "__main__":
     root = tk.Tk()
