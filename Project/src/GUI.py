@@ -25,7 +25,7 @@ class SchedulerGUI:
 
         # 设置字体和背景颜色
         self.root.configure(bg="#f4f4f4")  # 背景浅灰色
-        default_font = ("Helvetica", 14)
+        default_font = ("Helvetica", 16)
 
         # 标题
         title = tk.Label(root, text="CPU Scheduling Simulator", font=("Helvetica", 20, "bold"), bg="#f4f4f4")
@@ -176,7 +176,7 @@ class SchedulerGUI:
         for widget in self.metrics_frame.winfo_children():
             widget.destroy()  # 清除旧的指标
 
-        tk.Label(self.metrics_frame, text="Performance Metrics", font=("Helvetica", 14, "bold")).grid(row=0, column=0, columnspan=2)
+        tk.Label(self.metrics_frame, text="Performance Metrics", font=("Helvetica", 16, "bold")).grid(row=0, column=0, columnspan=2)
 
         row = 1
         for metric, value in metrics.items():
