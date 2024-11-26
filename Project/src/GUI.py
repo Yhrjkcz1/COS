@@ -13,7 +13,7 @@ class SchedulerGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("CPU Scheduling Simulator")
-        self.root.geometry("1000x700")  # 设置默认窗口大小
+        self.root.geometry("1000x800")  # 设置默认窗口大小
 
         # 配置列的权重
         for i in range(4):
