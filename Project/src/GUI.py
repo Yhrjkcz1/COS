@@ -15,20 +15,16 @@ class SchedulerGUI:
         self.processes = []
         self.scheduler = Scheduler(self.processes)
         self.input_entries = []
-
         self.configure_root()
         self.create_widgets()
-
-        #self.canvas = tk.Canvas(self.root, width=1000, height=400)
-        #self.canvas.grid(row=6, column=0, columnspan=2, pady=15, sticky="nsew")
 
     def configure_root(self):
         """配置主窗口的背景颜色和网格布局"""
         self.root.configure(bg="#f4f4f4")
         for i in range(4):
             self.root.grid_columnconfigure(i, weight=1)
-        self.root.grid_rowconfigure(5, weight=1)  # 输出区域
-        self.root.grid_rowconfigure(6, weight=1)  # 甘特图区域
+        self.root.grid_rowconfigure(5, weight=1)  
+        self.root.grid_rowconfigure(6, weight=1)  
 
     def create_widgets(self):
         self.create_title()
@@ -37,7 +33,6 @@ class SchedulerGUI:
         self.create_algorithm_selection()
         self.create_output_area()
         self.create_metrics_frame()
-        # 创建 Canvas 用于绘制甘特图
         self.canvas = tk.Canvas(self.root,bg="white")
         self.canvas.grid(row=6, column=0, columnspan=3, pady=15, sticky="nsew")
 
@@ -78,7 +73,6 @@ class SchedulerGUI:
             bg="#c9daf8", command=self.run_simulation
         )
         run_simulation_btn.grid(row=3, column=3, pady=15)
-
 
     def create_algorithm_selection(self):
         """创建算法选择和时间片输入区域，并添加随机生成和重置按钮"""
@@ -152,7 +146,6 @@ class SchedulerGUI:
         self.algorithm_var.set("")
         self.time_quantum.delete(0, tk.END)
 
-
     def create_output_area(self):
         """创建输出区域，包括滚动条"""
         output_frame = tk.Frame(self.root)
@@ -185,41 +178,6 @@ class SchedulerGUI:
 
         self.context_switches_label = tk.Label(self.metrics_frame, text="Context Switches:", font=("Helvetica", 14), bg="#f4f4f4")
         self.context_switches_label.grid(row=3, column=0, sticky="w", pady=5)
-
-    def animate_gantt_chart(self, step=0, max_finish_time=0):
-        """更新甘特图"""
-        self.canvas.delete("all")  # 每次重绘之前清除画布
-        #self.canvas.create_text(1100, 20, text="Performance Metrics", font=("Arial", 14, "bold"))
-
-        # 绘制性能指标
-        self.display_metrics_on_canvas()
-
-        # 绘制甘特图的横坐标时间线
-        self.canvas.create_line(100, 100, max_finish_time * 40 + 100, 100, width=2)
-
-        # 绘制每个进程的执行条
-        for i, process in enumerate(self.processes):
-            if process.completion_time > step:
-                start_x = process.start_time * 40 + 100  # 每个时间单位宽度为40
-                end_x = process.completion_time * 40 + 100
-                self.canvas.create_rectangle(start_x, 100 + i * 30, end_x, 130 + i * 30, fill="blue")
-                self.canvas.create_text(start_x + (end_x - start_x) / 2, 115 + i * 30, text=f"P{process.pid}")
-
-        # 每50ms更新一次甘特图（通过after）
-        if step < max_finish_time:
-            self.root.after(500, self.animate_gantt_chart, step + 1, max_finish_time)
-
-    def display_metrics_on_canvas(self):
-        """显示性能指标"""
-        metrics = {
-            "Average Waiting Time": sum(p.waiting_time for p in self.processes) / len(self.processes),
-            "Average Turnaround Time": sum(p.turnaround_time for p in self.processes) / len(self.processes),
-            "Context Switches": self.scheduler.get_context_switches(),
-        }
-        y_position = 40  # 设置文本起始位置
-        for metric, value in metrics.items():
-            self.canvas.create_text(1100, y_position, text=f"{metric}: {value:.2f}", anchor="w", font=("Arial", 12))
-            y_position += 20
 
     def add_process(self):
         try:
@@ -302,10 +260,6 @@ class SchedulerGUI:
                 f"Turnaround: {process.turnaround_time}\n"
             )
 
-        # 启动动画
-        max_finish_time = max(p.completion_time for p in self.processes) + 1
-        self.animate_gantt_chart(0, max_finish_time)
-
     def display_metrics(self, metrics):
         """显示性能指标"""
         for widget in self.metrics_frame.winfo_children():
@@ -342,7 +296,6 @@ class SchedulerGUI:
         index = self.input_entries.index(event.widget)
         if index % 4 != 0:  
             self.input_entries[index - 1].focus_set()
-
     def focus_right(self, event):
         index = self.input_entries.index(event.widget)
         if index % 4 != 3 and index + 1 < len(self.input_entries): 
