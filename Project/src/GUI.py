@@ -7,13 +7,13 @@ from process import Process
 import matplotlib.pyplot as plt
 from metrics import calculate_metrics, plot_gantt_chart, plot_histograms
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-
+from tkinter import font
 
 class SchedulerGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("CPU Scheduling Simulator")
-        self.root.geometry("1000x800")  # 设置默认窗口大小
+        self.root.geometry("1000x750")  # 设置默认窗口大小
 
         # 配置列的权重
         for i in range(4):
@@ -26,7 +26,7 @@ class SchedulerGUI:
         # 设置字体和背景颜色
         self.root.configure(bg="#f4f4f4")  # 背景浅灰色
         default_font = ("Helvetica", 16)
-
+        self.custom_font = font.Font(size=14)  # 设置字体大小为 16
         # 标题
         title = tk.Label(root, text="CPU Scheduling Simulator", font=("Helvetica", 20, "bold"), bg="#f4f4f4")
         title.grid(row=0, column=0, columnspan=4, pady=20)
@@ -67,11 +67,14 @@ class SchedulerGUI:
         decrease_font_btn = tk.Button(root, text="Decrease Font Size", font=default_font, command=self.decrease_output_font)
         decrease_font_btn.grid(row=7, column=1, pady=10)
 
+
+
         # 算法选择区域
         tk.Label(root, text="Choose Algorithm", font=default_font, bg="#f4f4f4").grid(row=4, column=0, pady=10)
         self.algorithm_var = tk.StringVar()
         algorithms = ["FCFS", "SJF-Non", "SJF-Preemptive", "Priority Scheduling", "Round Robin"]
         self.algorithm_menu = ttk.Combobox(root, textvariable=self.algorithm_var, values=algorithms, font=default_font)
+
         self.algorithm_menu.grid(row=4, column=1, padx=10, pady=5)
 
         # 时间片输入
@@ -101,22 +104,32 @@ class SchedulerGUI:
 
     def add_process(self):
         try:
+            # 获取输入的值
             pid = self.process_id.get()
             arrival = int(self.arrival_time.get())
             burst = int(self.burst_time.get())
             priority = int(self.priority.get())
 
+            # 检查 process_id 是否重复
+            if any(process.pid == pid for process in self.processes):
+                messagebox.showerror("Duplicate Process ID", f"Process ID '{pid}' already exists. Please use a unique ID.")
+                return  # 如果重复，退出方法
+
+            # 创建新的进程并添加到列表
             process = Process(pid, arrival, burst, priority)
             self.processes.append(process)
 
+            # 显示成功添加的信息
             self.output_text.insert(tk.END, f"Added Process: {pid}, Arrival: {arrival}, Burst: {burst}, Priority: {priority}\n")
+            
+            # 清空输入框
             self.process_id.delete(0, tk.END)
             self.arrival_time.delete(0, tk.END)
             self.burst_time.delete(0, tk.END)
             self.priority.delete(0, tk.END)
         except ValueError:
+            # 显示输入错误提示
             messagebox.showerror("Input Error", "Please enter valid integer values for Arrival, Burst, and Priority times.")
-
     def run_simulation(self):
         """运行选定的调度算法并更新 GUI"""
         algorithm = self.algorithm_var.get()
@@ -180,8 +193,8 @@ class SchedulerGUI:
 
         row = 1
         for metric, value in metrics.items():
-            tk.Label(self.metrics_frame, text=f"{metric}:").grid(row=row, column=0, padx=10, sticky="W")
-            tk.Label(self.metrics_frame, text=f"{value:.2f}").grid(row=row, column=1, padx=10, sticky="E")
+            tk.Label(self.metrics_frame, text=f"{metric}:", font=("Helvetica", 16)).grid(row=row, column=0, padx=10, sticky="W")
+            tk.Label(self.metrics_frame, text=f"{value:.2f}", font=("Helvetica", 16)).grid(row=row, column=1, padx=10, sticky="E")
             row += 1
 
     def display_gantt_chart(self, processes):
@@ -209,12 +222,12 @@ class SchedulerGUI:
         canvas = FigureCanvasTkAgg(fig, master=self.figure_frame)
         canvas.draw()
         canvas.get_tk_widget().pack()
-        # 添加 Entry 并绑定方向键事件
+        # Add an Entry and bind an arrow key event
     def create_entry(self, root, row, column):
-        entry = tk.Entry(root)
+        entry = tk.Entry(root,font=("Helvetica", 14))
         entry.grid(row=row, column=column, padx=10, pady=5)
 
-        # 绑定箭头键事件
+        # Bind arrow key events
         entry.bind("<Up>", self.focus_up)
         entry.bind("<Down>", self.focus_down)
         entry.bind("<Left>", self.focus_left)
@@ -223,34 +236,34 @@ class SchedulerGUI:
 
     def focus_up(self, event):
         index = self.input_entries.index(event.widget)
-        if index >= 4:  # 确保至少有一行在上方
+        if index >= 4:  # Make sure there is at least one line on top
             self.input_entries[index - 4].focus_set()
 
     def focus_down(self, event):
         index = self.input_entries.index(event.widget)
-        if index + 4 < len(self.input_entries):  # 确保有一行在下方
+        if index + 4 < len(self.input_entries):  
             self.input_entries[index + 4].focus_set()
 
     def focus_left(self, event):
         index = self.input_entries.index(event.widget)
-        if index % 4 != 0:  # 确保不是最左列
+        if index % 4 != 0:  
             self.input_entries[index - 1].focus_set()
 
     def focus_right(self, event):
         index = self.input_entries.index(event.widget)
-        if index % 4 != 3 and index + 1 < len(self.input_entries):  # 确保不是最右列
+        if index % 4 != 3 and index + 1 < len(self.input_entries): 
             self.input_entries[index + 1].focus_set()
     def increase_output_font(self):
-        """增加输出区域的字体大小"""
+        """Increase the font size of the output area"""
         current_font = self.output_text.cget("font")
         family, size, *rest = current_font.split()
         new_size = int(size) + 2  # 增加字体大小
         self.output_text.configure(font=(family, new_size))
     def decrease_output_font(self):
-        """缩小输出区域的字体大小"""
+        """Reducing the font size of the output area"""
         current_font = self.output_text.cget("font")
         family, size, *rest = current_font.split()
-        new_size = max(10, int(size) - 2)  # 保证字体大小不小于 10
+        new_size = max(10, int(size) - 2)  # Make sure the font size is not less than 10
         self.output_text.configure(font=(family, new_size))
 
 if __name__ == "__main__":
