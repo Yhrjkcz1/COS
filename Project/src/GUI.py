@@ -4,7 +4,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from scheduler import Scheduler
 from process import Process
-
+from matplotlib.animation import FuncAnimation
 
 class SchedulerGUI:
     def __init__(self, root):
@@ -17,8 +17,9 @@ class SchedulerGUI:
 
         self.configure_root()
         self.create_widgets()
-        self.animation_step = 0  # 添加动画步进的计数器
-        self.animation = None  # 用来存储动画对象
+
+        #self.canvas = tk.Canvas(self.root, width=1000, height=400)
+        #self.canvas.grid(row=6, column=0, columnspan=2, pady=15, sticky="nsew")
 
     def configure_root(self):
         """配置主窗口的背景颜色和网格布局"""
@@ -36,9 +37,8 @@ class SchedulerGUI:
         self.create_output_area()
         self.create_metrics_frame()
         # 创建 Canvas 用于绘制甘特图
-        self.canvas = tk.Canvas(self.root, width=1200, height=400, bg="white")
-        self.canvas.grid(row=6, column=0, columnspan=4, pady=15, sticky="nsew")
-
+        self.canvas = tk.Canvas(self.root,bg="white")
+        self.canvas.grid(row=6, column=0, columnspan=3, pady=15, sticky="nsew")
 
     def create_title(self):
         """创建标题标签"""
@@ -105,7 +105,7 @@ class SchedulerGUI:
         output_frame.grid_rowconfigure(0, weight=1)
         output_frame.grid_columnconfigure(0, weight=1)
 
-        self.output_text = tk.Text(output_frame, height=20, wrap="word", font=("Helvetica", 14))
+        self.output_text = tk.Text(output_frame, height=10, wrap="word", font=("Helvetica", 14))
         self.output_text.grid(row=0, column=0, sticky="nsew")
 
         scrollbar = tk.Scrollbar(output_frame, orient="vertical", command=self.output_text.yview)
@@ -115,32 +115,56 @@ class SchedulerGUI:
     def create_metrics_frame(self):
         """创建性能指标显示框"""
         self.metrics_frame = tk.Frame(self.root, bg="#f4f4f4")
-        self.metrics_frame.grid(row=6, column=2, columnspan=2, sticky="nsew", padx=10, pady=10)
+        self.metrics_frame.grid(row=6, column=3, columnspan=1, sticky="nsew", padx=10, pady=10)
 
-    def animate_gantt_chart(self, step):
-        """动画绘制甘特图"""
-        self.canvas.delete("all")  # 每次更新前清空画布
+        # 添加标题标签
+        self.metrics_title = tk.Label(self.metrics_frame, text="Performance Metrics", font=("Helvetica", 16, "bold"), bg="#f4f4f4")
+        self.metrics_title.grid(row=0, column=0, columnspan=2, pady=10)
 
-        # 绘制每个进程的甘特图条形
+        # 预留标签用于展示性能指标
+        self.avg_waiting_time_label = tk.Label(self.metrics_frame, text="Average Waiting Time:", font=("Helvetica", 14), bg="#f4f4f4")
+        self.avg_waiting_time_label.grid(row=1, column=0, sticky="w", pady=5)
+
+        self.avg_turnaround_time_label = tk.Label(self.metrics_frame, text="Average Turnaround Time:", font=("Helvetica", 14), bg="#f4f4f4")
+        self.avg_turnaround_time_label.grid(row=2, column=0, sticky="w", pady=5)
+
+        self.context_switches_label = tk.Label(self.metrics_frame, text="Context Switches:", font=("Helvetica", 14), bg="#f4f4f4")
+        self.context_switches_label.grid(row=3, column=0, sticky="w", pady=5)
+
+    def animate_gantt_chart(self, step=0, max_finish_time=0):
+        """更新甘特图"""
+        self.canvas.delete("all")  # 每次重绘之前清除画布
+        #self.canvas.create_text(1100, 20, text="Performance Metrics", font=("Arial", 14, "bold"))
+
+        # 绘制性能指标
+        self.display_metrics_on_canvas()
+
+        # 绘制甘特图的横坐标时间线
+        self.canvas.create_line(100, 100, max_finish_time * 40 + 100, 100, width=2)
+
+        # 绘制每个进程的执行条
         for i, process in enumerate(self.processes):
-            if process.start_time <= step < process.completion_time:
-                self.canvas.create_rectangle(
-                    process.start_time * 40, i * 50 + 20,  # 左上角坐标
-                    (process.start_time + process.burst_time) * 40, i * 50 + 40,  # 右下角坐标
-                    fill="blue", outline="black"
-                )
-                self.canvas.create_text(
-                    (process.start_time + process.burst_time / 2) * 40, i * 50 + 30,
-                    text=process.pid, fill="white", font=("Arial", 10)
-                )
+            if process.completion_time > step:
+                start_x = process.start_time * 40 + 100  # 每个时间单位宽度为40
+                end_x = process.completion_time * 40 + 100
+                self.canvas.create_rectangle(start_x, 100 + i * 30, end_x, 130 + i * 30, fill="blue")
+                self.canvas.create_text(start_x + (end_x - start_x) / 2, 115 + i * 30, text=f"P{process.pid}")
 
-        # 设置定时更新动画
-        if step < max(p.completion_time for p in self.processes):
-            self.root.after(500, self.animate_gantt_chart, step + 1)
+        # 每50ms更新一次甘特图（通过after）
+        if step < max_finish_time:
+            self.root.after(500, self.animate_gantt_chart, step + 1, max_finish_time)
 
-
-    # 然后在运行模拟时使用 FuncAnimation 来调用动画
-
+    def display_metrics_on_canvas(self):
+        """显示性能指标"""
+        metrics = {
+            "Average Waiting Time": sum(p.waiting_time for p in self.processes) / len(self.processes),
+            "Average Turnaround Time": sum(p.turnaround_time for p in self.processes) / len(self.processes),
+            "Context Switches": self.scheduler.get_context_switches(),
+        }
+        y_position = 40  # 设置文本起始位置
+        for metric, value in metrics.items():
+            self.canvas.create_text(1100, y_position, text=f"{metric}: {value:.2f}", anchor="w", font=("Arial", 12))
+            y_position += 20
 
     def add_process(self):
         try:
@@ -172,7 +196,6 @@ class SchedulerGUI:
             messagebox.showerror("Input Error", "Please enter valid integer values for Arrival, Burst, and Priority times.")
 
     def run_simulation(self):
-        
         """运行选定的调度算法并更新 GUI"""
         algorithm = self.algorithm_var.get()
         time_quantum = self.time_quantum.get()
@@ -203,11 +226,14 @@ class SchedulerGUI:
             scheduler.round_robin(quantum)
 
         # 收集性能指标
-        metrics = {
-            "Average Waiting Time": sum(p.waiting_time for p in self.processes) / len(self.processes),
-            "Average Turnaround Time": sum(p.turnaround_time for p in self.processes) / len(self.processes),
-            "Context Switches": scheduler.get_context_switches(),
-        }
+        avg_waiting_time = sum(p.waiting_time for p in self.processes) / len(self.processes)
+        avg_turnaround_time = sum(p.turnaround_time for p in self.processes) / len(self.processes)
+        context_switches = scheduler.get_context_switches()
+
+        # 更新性能指标显示
+        self.avg_waiting_time_label.config(text=f"Average Waiting Time: {avg_waiting_time:.2f}")
+        self.avg_turnaround_time_label.config(text=f"Average Turnaround Time: {avg_turnaround_time:.2f}")
+        self.context_switches_label.config(text=f"Context Switches: {context_switches}")
 
         # 更新输出区域
         self.output_text.delete("1.0", tk.END)
@@ -221,11 +247,9 @@ class SchedulerGUI:
                 f"Turnaround: {process.turnaround_time}\n"
             )
 
-        # 调用图形更新
-        self.display_metrics(metrics)           # 显示性能指标
         # 启动动画
-        self.animate_gantt_chart(0)
-
+        max_finish_time = max(p.completion_time for p in self.processes) + 1
+        self.animate_gantt_chart(0, max_finish_time)
 
     def display_metrics(self, metrics):
         """显示性能指标"""
@@ -240,7 +264,6 @@ class SchedulerGUI:
             tk.Label(self.metrics_frame, text=f"{value:.2f}", font=("Helvetica", 16)).grid(row=row, column=1, padx=10, sticky="E")
             row += 1
     
-
     def create_entry(self, row, column):
         """创建输入框并绑定箭头键事件"""
         entry = tk.Entry(self.root, font=("Helvetica", 14))
@@ -281,7 +304,6 @@ class SchedulerGUI:
         family, size, *rest = current_font.split()
         new_size = max(10, int(size) - 2)  # Make sure the font size is not less than 10
         self.output_text.configure(font=(family, new_size))
-    # 其余方法：add_process, run_simulation, display_metrics, draw_gantt_chart 等...
 
 if __name__ == "__main__":
     root = tk.Tk()
