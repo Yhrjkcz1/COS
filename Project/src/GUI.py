@@ -1,4 +1,4 @@
-# src/gui.py
+# Updated GUI.py with dynamic animation
 
 import tkinter as tk
 from tkinter import ttk, messagebox
@@ -14,19 +14,18 @@ class SchedulerGUI:
         self.processes = []
         self.scheduler = Scheduler(self.processes)
         self.input_entries = []
+        self.animation_running = False  # 用于控制动画状态
 
         self.configure_root()
         self.create_widgets()
-        self.animation_step = 0  # 添加动画步进的计数器
-        self.animation = None  # 用来存储动画对象
 
     def configure_root(self):
         """配置主窗口的背景颜色和网格布局"""
         self.root.configure(bg="#f4f4f4")
         for i in range(4):
             self.root.grid_columnconfigure(i, weight=1)
-        self.root.grid_rowconfigure(5, weight=1)  # 输出区域
-        self.root.grid_rowconfigure(6, weight=1)  # 甘特图区域
+        self.root.grid_rowconfigure(5, weight=1)
+        self.root.grid_rowconfigure(6, weight=1)
 
     def create_widgets(self):
         self.create_title()
@@ -35,10 +34,8 @@ class SchedulerGUI:
         self.create_algorithm_selection()
         self.create_output_area()
         self.create_metrics_frame()
-        # 创建 Canvas 用于绘制甘特图
         self.canvas = tk.Canvas(self.root, width=1200, height=400, bg="white")
         self.canvas.grid(row=6, column=0, columnspan=4, pady=15, sticky="nsew")
-
 
     def create_title(self):
         """创建标题标签"""
@@ -66,17 +63,15 @@ class SchedulerGUI:
 
     def create_buttons(self):
         """创建按钮区域"""
-        add_process_btn = tk.Button(
+        tk.Button(
             self.root, text="Add Process", font=("Helvetica", 18),
             bg="#d9ead3", command=self.add_process
-        )
-        add_process_btn.grid(row=3, column=0, pady=15)
+        ).grid(row=3, column=0, pady=15)
 
-        run_simulation_btn = tk.Button(
+        tk.Button(
             self.root, text="Run Simulation", font=("Helvetica", 18),
             bg="#c9daf8", command=self.run_simulation
-        )
-        run_simulation_btn.grid(row=3, column=3, pady=15)
+        ).grid(row=3, column=3, pady=15)
 
     def create_algorithm_selection(self):
         """创建算法选择和时间片输入区域"""
@@ -117,80 +112,82 @@ class SchedulerGUI:
         self.metrics_frame = tk.Frame(self.root, bg="#f4f4f4")
         self.metrics_frame.grid(row=6, column=2, columnspan=2, sticky="nsew", padx=10, pady=10)
 
-    def animate_gantt_chart(self, step):
-        """动画绘制甘特图"""
-        self.canvas.delete("all")  # 每次更新前清空画布
+    def draw_gantt_chart(self, step):
+        """动态绘制甘特图"""
+        self.canvas.delete("all")
+        time_scale = 40  # 每单位时间40像素
+        bar_height = 40  # 每个任务的条形高度
 
-        # 绘制每个进程的甘特图条形
         for i, process in enumerate(self.processes):
-            if process.start_time <= step < process.completion_time:
-                self.canvas.create_rectangle(
-                    process.start_time * 40, i * 50 + 20,  # 左上角坐标
-                    (process.start_time + process.burst_time) * 40, i * 50 + 40,  # 右下角坐标
-                    fill="blue", outline="black"
-                )
+            start_x = process.start_time * time_scale
+            y_top = i * bar_height + 20
+            y_bottom = y_top + bar_height
+
+            if step < process.start_time:  # 当前时间还未到任务开始时间
+                continue
+
+            # 动态显示任务条形宽度，直到任务结束时间
+            end_x = min(step, process.completion_time) * time_scale
+
+            # 绘制任务条形
+            self.canvas.create_rectangle(start_x, y_top, end_x, y_bottom, fill=process.color, outline="black")
+
+            # 在条形中间显示进程ID
+            self.canvas.create_text(
+                (start_x + end_x) / 2, y_top + bar_height / 2,
+                text=f"P{process.pid}", fill="white", font=("Helvetica", 14)
+            )
+
+            # 显示开始时间和结束时间标签
+            self.canvas.create_text(
+                start_x, y_bottom + 10, text=f"Start: {process.start_time}", anchor="w", font=("Helvetica", 10)
+            )
+            if step >= process.completion_time:  # 仅在任务结束后显示结束时间
                 self.canvas.create_text(
-                    (process.start_time + process.burst_time / 2) * 40, i * 50 + 30,
-                    text=process.pid, fill="white", font=("Arial", 10)
+                    process.completion_time * time_scale, y_bottom + 10,
+                    text=f"End: {process.completion_time}", anchor="e", font=("Helvetica", 10)
                 )
 
-        # 设置定时更新动画
-        if step < max(p.completion_time for p in self.processes):
-            self.root.after(500, self.animate_gantt_chart, step + 1)
-
-
-    # 然后在运行模拟时使用 FuncAnimation 来调用动画
-
-
+    def animate_gantt_chart(self, current_time=0):
+        """更新甘特图的动画逻辑"""
+        max_time = max(p.completion_time for p in self.processes)
+        self.draw_gantt_chart(current_time)  # 绘制当前时间的甘特图
+        if current_time < max_time:  # 如果当前时间小于最大完成时间
+            self.root.after(500, self.animate_gantt_chart, current_time + 1)  # 延迟调用下一帧
+            
     def add_process(self):
+        """添加进程"""
         try:
-            # 获取输入的值
             pid = self.process_id.get()
             arrival = int(self.arrival_time.get())
             burst = int(self.burst_time.get())
             priority = int(self.priority.get())
-
-            # 检查 process_id 是否重复
             if any(process.pid == pid for process in self.processes):
-                messagebox.showerror("Duplicate Process ID", f"Process ID '{pid}' already exists. Please use a unique ID.")
-                return  # 如果重复，退出方法
-
-            # 创建新的进程并添加到列表
+                messagebox.showerror("Error", "Duplicate Process ID")
+                return
             process = Process(pid, arrival, burst, priority)
             self.processes.append(process)
-
-            # 显示成功添加的信息
             self.output_text.insert(tk.END, f"Added Process: {pid}, Arrival: {arrival}, Burst: {burst}, Priority: {priority}\n")
-            
-            # 清空输入框
-            self.process_id.delete(0, tk.END)
-            self.arrival_time.delete(0, tk.END)
-            self.burst_time.delete(0, tk.END)
-            self.priority.delete(0, tk.END)
+            for entry in self.input_entries:
+                entry.delete(0, tk.END)
         except ValueError:
-            # 显示输入错误提示
-            messagebox.showerror("Input Error", "Please enter valid integer values for Arrival, Burst, and Priority times.")
+            messagebox.showerror("Error", "Invalid input values")
+    def create_entry(self, row, column):
+        """创建输入框并绑定箭头键事件"""
+        entry = tk.Entry(self.root, font=("Helvetica", 14))
+        entry.grid(row=row, column=column, padx=10, pady=5)
+        return entry
 
     def run_simulation(self):
-        
-        """运行选定的调度算法并更新 GUI"""
+        """运行选定的调度算法"""
         algorithm = self.algorithm_var.get()
         time_quantum = self.time_quantum.get()
 
         if not algorithm:
-            messagebox.showerror("Error", "Please select a scheduling algorithm.")
+            messagebox.showerror("Error", "Select an algorithm")
             return
 
-        # 确保时间片是有效数字（仅适用于 Round Robin）
-        if algorithm == "Round Robin" and (not time_quantum.isdigit() or int(time_quantum) <= 0):
-            messagebox.showerror("Error", "Please enter a valid positive integer for the time quantum.")
-            return
-
-        # 初始化调度器和进程
         scheduler = Scheduler(self.processes)
-        quantum = int(time_quantum) if time_quantum.isdigit() else None
-
-        # 调用相应的调度算法
         if algorithm == "FCFS":
             scheduler.fcfs()
         elif algorithm == "SJF-Non":
@@ -200,88 +197,22 @@ class SchedulerGUI:
         elif algorithm == "Priority Scheduling":
             scheduler.priority_scheduling()
         elif algorithm == "Round Robin":
-            scheduler.round_robin(quantum)
+            if not time_quantum.isdigit():
+                messagebox.showerror("Error", "Invalid Time Quantum")
+                return
+            scheduler.round_robin(int(time_quantum))
 
-        # 收集性能指标
-        metrics = {
-            "Average Waiting Time": sum(p.waiting_time for p in self.processes) / len(self.processes),
-            "Average Turnaround Time": sum(p.turnaround_time for p in self.processes) / len(self.processes),
-            "Context Switches": scheduler.get_context_switches(),
-        }
-
-        # 更新输出区域
+        # 显示结果
         self.output_text.delete("1.0", tk.END)
-        self.output_text.insert(tk.END, f"Scheduling Algorithm: {algorithm}\n\n")
         for process in self.processes:
             self.output_text.insert(
                 tk.END,
-                f"Process {process.pid} -> Arrival: {process.arrival_time}, "
-                f"Burst: {process.burst_time}, Start: {process.start_time}, "
-                f"Completion: {process.completion_time}, Waiting: {process.waiting_time}, "
-                f"Turnaround: {process.turnaround_time}\n"
+                f"P{process.pid}: Arrival={process.arrival_time}, Start={process.start_time}, "
+                f"Completion={process.completion_time}, Waiting={process.waiting_time}, "
+                f"Turnaround={process.turnaround_time}\n"
             )
-
-        # 调用图形更新
-        self.display_metrics(metrics)           # 显示性能指标
-        # 启动动画
         self.animate_gantt_chart(0)
 
-
-    def display_metrics(self, metrics):
-        """显示性能指标"""
-        for widget in self.metrics_frame.winfo_children():
-            widget.destroy()  # 清除旧的指标
-
-        tk.Label(self.metrics_frame, text="Performance Metrics", font=("Helvetica", 16, "bold")).grid(row=0, column=0, columnspan=2)
-
-        row = 1
-        for metric, value in metrics.items():
-            tk.Label(self.metrics_frame, text=f"{metric}:", font=("Helvetica", 16)).grid(row=row, column=0, padx=10, sticky="W")
-            tk.Label(self.metrics_frame, text=f"{value:.2f}", font=("Helvetica", 16)).grid(row=row, column=1, padx=10, sticky="E")
-            row += 1
-    
-
-    def create_entry(self, row, column):
-        """创建输入框并绑定箭头键事件"""
-        entry = tk.Entry(self.root, font=("Helvetica", 14))
-        entry.grid(row=row, column=column, padx=10, pady=5)
-        entry.bind("<Up>", self.focus_up)
-        entry.bind("<Down>", self.focus_down)
-        entry.bind("<Left>", self.focus_left)
-        entry.bind("<Right>", self.focus_right)
-        return entry
-    def focus_up(self, event):
-        index = self.input_entries.index(event.widget)
-        if index >= 4:  # Make sure there is at least one line on top
-            self.input_entries[index - 4].focus_set()
-
-    def focus_down(self, event):
-        index = self.input_entries.index(event.widget)
-        if index + 4 < len(self.input_entries):  
-            self.input_entries[index + 4].focus_set()
-
-    def focus_left(self, event):
-        index = self.input_entries.index(event.widget)
-        if index % 4 != 0:  
-            self.input_entries[index - 1].focus_set()
-
-    def focus_right(self, event):
-        index = self.input_entries.index(event.widget)
-        if index % 4 != 3 and index + 1 < len(self.input_entries): 
-            self.input_entries[index + 1].focus_set()
-    def increase_output_font(self):
-        """Increase the font size of the output area"""
-        current_font = self.output_text.cget("font")
-        family, size, *rest = current_font.split()
-        new_size = int(size) + 2  # 增加字体大小
-        self.output_text.configure(font=(family, new_size))
-    def decrease_output_font(self):
-        """Reducing the font size of the output area"""
-        current_font = self.output_text.cget("font")
-        family, size, *rest = current_font.split()
-        new_size = max(10, int(size) - 2)  # Make sure the font size is not less than 10
-        self.output_text.configure(font=(family, new_size))
-    # 其余方法：add_process, run_simulation, display_metrics, draw_gantt_chart 等...
 
 if __name__ == "__main__":
     root = tk.Tk()
