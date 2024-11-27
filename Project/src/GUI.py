@@ -99,13 +99,13 @@ class SchedulerGUI:
 
         # 新增的随机生成和重置按钮
         random_btn = tk.Button(
-            self.root, text="Random Generate", font=("Helvetica", 16),
+            self.root, text="Random Generate", font=("Helvetica", 18),
             bg="#fce5cd", command=self.generate_random_processes
         )
         random_btn.grid(row=3, column=1, pady=10, padx=5)
 
         reset_btn = tk.Button(
-            self.root, text="Reset", font=("Helvetica", 16),
+            self.root, text="Reset", font=("Helvetica", 18),
             bg="#f4cccc", command=self.reset_simulation
         )
         reset_btn.grid(row=3, column=2, pady=10, padx=5)
@@ -139,8 +139,15 @@ class SchedulerGUI:
             entry.delete(0, tk.END)
         self.output_text.delete("1.0", tk.END)
 
-        # 重置甘特图和性能指标
-        self.canvas.delete("all")
+        # 销毁甘特图（如果存在）
+        if self.canvas is not None:
+            self.canvas.get_tk_widget().destroy()
+            self.canvas = None
+
+        # 重新创建甘特图区域
+        self.create_gantt_chart_area()
+
+        # 重置性能指标
         self.avg_waiting_time_label.config(text="Average Waiting Time:")
         self.avg_turnaround_time_label.config(text="Average Turnaround Time:")
         self.context_switches_label.config(text="Context Switches:")
@@ -206,10 +213,10 @@ class SchedulerGUI:
             task_end = min(current_time, task["start"] + task["duration"])
             if current_time >= task["start"]:
                 progress = task_end - task["start"]
-                self.ax.barh(i + 1, progress, left=task["start"], color="blue")
+                self.ax.barh(i + 1, progress, left=task["start"], color=task["color"])
                 self.ax.text(
                     task["start"] + progress / 2, i + 1, task["name"],
-                    va="center", ha="center", color="white"
+                    va="center", ha="center", color="black"
                 )
 
         self.ax.set_xlim(0, max(task["start"] + task["duration"] for task in tasks))
@@ -319,6 +326,7 @@ class SchedulerGUI:
                 "name": process.pid,
                 "start": process.start_time,
                 "duration": process.burst_time,
+                "color": process.color,
             }
             for process in self.processes
         ]
