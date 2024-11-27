@@ -6,7 +6,8 @@ from scheduler import Scheduler
 from process import Process
 from matplotlib.animation import FuncAnimation
 import random  # 导入随机数模块
-
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib.pyplot as plt
 class SchedulerGUI:
     def __init__(self, root):
         self.root = root
@@ -15,6 +16,9 @@ class SchedulerGUI:
         self.processes = []
         self.scheduler = Scheduler(self.processes)
         self.input_entries = []
+        self.figure = None  # 用于甘特图
+        self.canvas = None  # FigureCanvasTkAgg 对象
+        self.ani = None  # 用于保存动画对象
         self.configure_root()
         self.create_widgets()
 
@@ -33,9 +37,8 @@ class SchedulerGUI:
         self.create_algorithm_selection()
         self.create_output_area()
         self.create_metrics_frame()
-        self.canvas = tk.Canvas(self.root,bg="white")
-        self.canvas.grid(row=6, column=0, columnspan=3, pady=15, sticky="nsew")
-
+        self.create_gantt_chart_area()  # 创建甘特图区域
+ 
     def create_title(self):
         """创建标题标签"""
         title = tk.Label(
@@ -178,6 +181,56 @@ class SchedulerGUI:
 
         self.context_switches_label = tk.Label(self.metrics_frame, text="Context Switches:", font=("Helvetica", 14), bg="#f4f4f4")
         self.context_switches_label.grid(row=3, column=0, sticky="w", pady=5)
+    def create_gantt_chart_area(self):
+        """在GUI中创建甘特图区域"""
+        # 初始化 Matplotlib 图形
+        self.figure, self.ax = plt.subplots(figsize=(8, 4))
+        self.ax.set_title("Dynamic Gantt Chart")
+        self.ax.set_xlabel("Time")
+        self.ax.set_ylabel("Processes")
+
+        # 嵌入到 Tkinter 中
+        self.canvas = FigureCanvasTkAgg(self.figure, master=self.root)
+        self.canvas.get_tk_widget().grid(row=6, column=0, columnspan=3, pady=15, sticky="nsew")
+
+    def update_gantt_chart(self, frame, tasks, time_step):
+        """动态更新甘特图"""
+        current_time = frame * time_step
+        self.ax.clear()
+        self.ax.set_title("Dynamic Gantt Chart")
+        self.ax.set_xlabel("Time")
+        self.ax.set_ylabel("Processes")
+
+        # 绘制任务进度条
+        for i, task in enumerate(tasks):
+            task_end = min(current_time, task["start"] + task["duration"])
+            if current_time >= task["start"]:
+                progress = task_end - task["start"]
+                self.ax.barh(i + 1, progress, left=task["start"], color="blue")
+                self.ax.text(
+                    task["start"] + progress / 2, i + 1, task["name"],
+                    va="center", ha="center", color="white"
+                )
+
+        self.ax.set_xlim(0, max(task["start"] + task["duration"] for task in tasks))
+        self.ax.set_ylim(0, len(tasks) + 1)
+        self.canvas.draw()
+
+    def show_gantt_chart(self, tasks):
+        """显示甘特图动画"""
+        max_time = max(task["start"] + task["duration"] for task in tasks)
+        time_step = 0.2  # 每帧推进时间
+        interval = 100   # 每帧更新间隔（毫秒）
+
+        # 启动动画
+        frames = int(max_time / time_step)
+        if self.ani:
+            self.ani.event_source.stop()  # 停止之前的动画
+        self.ani = FuncAnimation(
+            self.figure, self.update_gantt_chart,
+            frames=frames, interval=interval, repeat=False,
+            fargs=(tasks, time_step)
+        )
 
     def add_process(self):
         try:
@@ -259,6 +312,17 @@ class SchedulerGUI:
                 f"Completion: {process.completion_time}, Waiting: {process.waiting_time}, "
                 f"Turnaround: {process.turnaround_time}\n"
             )
+                
+        # 更新甘特图
+        tasks = [
+            {
+                "name": process.pid,
+                "start": process.start_time,
+                "duration": process.burst_time,
+            }
+            for process in self.processes
+        ]
+        self.show_gantt_chart(tasks)
 
     def display_metrics(self, metrics):
         """显示性能指标"""
