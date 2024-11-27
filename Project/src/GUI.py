@@ -5,6 +5,7 @@ from tkinter import ttk, messagebox
 from scheduler import Scheduler
 from process import Process
 from matplotlib.animation import FuncAnimation
+import random  # 导入随机数模块
 
 class SchedulerGUI:
     def __init__(self, root):
@@ -78,8 +79,9 @@ class SchedulerGUI:
         )
         run_simulation_btn.grid(row=3, column=3, pady=15)
 
+
     def create_algorithm_selection(self):
-        """创建算法选择和时间片输入区域"""
+        """创建算法选择和时间片输入区域，并添加随机生成和重置按钮"""
         tk.Label(
             self.root, text="Choose Algorithm", font=("Helvetica", 18), bg="#f4f4f4"
         ).grid(row=4, column=0, pady=10)
@@ -97,6 +99,59 @@ class SchedulerGUI:
 
         self.time_quantum = tk.Entry(self.root, font=("Helvetica", 18))
         self.time_quantum.grid(row=4, column=3, padx=10)
+
+        # 新增的随机生成和重置按钮
+        random_btn = tk.Button(
+            self.root, text="Random Generate", font=("Helvetica", 16),
+            bg="#fce5cd", command=self.generate_random_processes
+        )
+        random_btn.grid(row=3, column=1, pady=10, padx=5)
+
+        reset_btn = tk.Button(
+            self.root, text="Reset", font=("Helvetica", 16),
+            bg="#f4cccc", command=self.reset_simulation
+        )
+        reset_btn.grid(row=3, column=2, pady=10, padx=5)
+
+    def generate_random_processes(self):
+        """随机生成 5 个示例进程并更新界面"""
+        self.processes.clear()  # 清空当前进程列表
+        for i in range(5):
+            pid = f"P{i + 1}"
+            arrival_time = random.randint(0, 10)
+            burst_time = random.randint(1, 10)
+            priority = random.randint(1, 5)
+            process = Process(pid, arrival_time, burst_time, priority)
+            self.processes.append(process)
+
+        # 更新输出区域
+        self.output_text.delete("1.0", tk.END)
+        self.output_text.insert(tk.END, "Randomly Generated Processes:\n")
+        for process in self.processes:
+            self.output_text.insert(
+                tk.END, f"Process {process.pid}: Arrival={process.arrival_time}, "
+                        f"Burst={process.burst_time}, Priority={process.priority}\n"
+            )
+
+    def reset_simulation(self):
+        """清空所有数据并重置界面"""
+        self.processes.clear()  # 清空进程列表
+
+        # 清空输入框和输出区域
+        for entry in self.input_entries:
+            entry.delete(0, tk.END)
+        self.output_text.delete("1.0", tk.END)
+
+        # 重置甘特图和性能指标
+        self.canvas.delete("all")
+        self.avg_waiting_time_label.config(text="Average Waiting Time:")
+        self.avg_turnaround_time_label.config(text="Average Turnaround Time:")
+        self.context_switches_label.config(text="Context Switches:")
+
+        # 清空算法选择和时间片
+        self.algorithm_var.set("")
+        self.time_quantum.delete(0, tk.END)
+
 
     def create_output_area(self):
         """创建输出区域，包括滚动条"""
