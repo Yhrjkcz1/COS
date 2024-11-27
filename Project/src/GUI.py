@@ -202,26 +202,46 @@ class SchedulerGUI:
 
     def update_gantt_chart(self, frame, tasks, time_step):
         """动态更新甘特图"""
-        current_time = frame * time_step
-        self.ax.clear()
+        current_time = frame * time_step  # 当前时间
+        self.ax.clear()  # 清空之前的图形内容
         self.ax.set_title("Dynamic Gantt Chart")
         self.ax.set_xlabel("Time")
         self.ax.set_ylabel("Processes")
 
         # 绘制任务进度条
         for i, task in enumerate(tasks):
-            task_end = min(current_time, task["start"] + task["duration"])
-            if current_time >= task["start"]:
-                progress = task_end - task["start"]
-                self.ax.barh(i + 1, progress, left=task["start"], color=task["color"])
+            task_start = task["start"]
+            task_end = task["start"] + task["duration"]
+
+            # 只在当前时间大于任务开始时间时绘制条形
+            if current_time >= task_start:
+                progress = min(current_time - task_start, task["duration"])  # 动态长度
+                self.ax.barh(i + 1, progress, left=task_start, color=task["color"], edgecolor="black")
+                
+                # 在条形中显示任务名称
                 self.ax.text(
-                    task["start"] + progress / 2, i + 1, task["name"],
-                    va="center", ha="center", color="black"
+                    task_start + progress / 2, i + 1, task["name"],
+                    va="center", ha="center", color="white", fontweight="bold"
+                )
+                
+                # 添加开始时间标签
+                self.ax.text(
+                    task_start, i + 1.2, f"Start: {task_start}",
+                    va="center", ha="center", fontsize=8, color="black"
                 )
 
-        self.ax.set_xlim(0, max(task["start"] + task["duration"] for task in tasks))
-        self.ax.set_ylim(0, len(tasks) + 1)
-        self.canvas.draw()
+                # 添加结束时间标签（仅当任务完成时）
+                if current_time >= task_end:
+                    self.ax.text(
+                        task_end, i + 1.2, f"End: {task_end}",
+                        va="center", ha="center", fontsize=8, color="black"
+                    )
+
+        # 设置时间范围和任务范围
+        max_time = max(task["start"] + task["duration"] for task in tasks)
+        self.ax.set_xlim(0, max_time + 1)  # 时间轴范围
+        self.ax.set_ylim(0, len(tasks) + 1)  # 任务数量范围
+        self.canvas.draw()  # 更新图形
 
     def show_gantt_chart(self, tasks):
         """显示甘特图动画"""
