@@ -129,7 +129,31 @@ class SchedulerGUI:
                 tk.END, f"Process {process.pid}: Arrival={process.arrival_time}, "
                         f"Burst={process.burst_time}, Priority={process.priority}\n"
             )
+    def reset_simulation(self):
+        """清空所有数据并重置界面"""
+        self.processes.clear()  # 清空进程列表
 
+        # 清空输入框和输出区域
+        for entry in self.input_entries:
+            entry.delete(0, tk.END)
+        self.output_text.delete("1.0", tk.END)
+
+        # 销毁甘特图（如果存在）
+        if self.canvas is not None:
+            self.canvas.get_tk_widget().destroy()
+            self.canvas = None
+
+        # 重新创建甘特图区域
+        self.create_gantt_chart_area()
+
+        # 重置性能指标
+        self.avg_waiting_time_label.config(text="Average Waiting Time:")
+        self.avg_turnaround_time_label.config(text="Average Turnaround Time:")
+        self.context_switches_label.config(text="Context Switches:")
+
+        # 清空算法选择和时间片
+        self.algorithm_var.set("")
+        self.time_quantum.delete(0, tk.END)
     def reset_simulation(self):
         """清空所有数据并重置界面"""
         self.processes.clear()  # 清空进程列表
@@ -221,20 +245,20 @@ class SchedulerGUI:
                 # 在条形中显示任务名称
                 self.ax.text(
                     task_start + progress / 2, i + 1, task["name"],
-                    va="center", ha="center", color="white", fontweight="bold"
+                    va="center", ha="center", color="black", fontweight="bold"
                 )
                 
                 # 添加开始时间标签
                 self.ax.text(
                     task_start, i + 1.2, f"Start: {task_start}",
-                    va="center", ha="center", fontsize=8, color="black"
+                    va="center", ha="center", fontsize=10, color="black"
                 )
 
                 # 添加结束时间标签（仅当任务完成时）
                 if current_time >= task_end:
                     self.ax.text(
                         task_end, i + 1.2, f"End: {task_end}",
-                        va="center", ha="center", fontsize=8, color="black"
+                        va="center", ha="center", fontsize=10, color="black"
                     )
 
         # 设置时间范围和任务范围
@@ -248,11 +272,14 @@ class SchedulerGUI:
         max_time = max(task["start"] + task["duration"] for task in tasks)
         time_step = 0.2  # 每帧推进时间
         interval = 100   # 每帧更新间隔（毫秒）
-
+        # 检查并停止已有动画
+        if self.ani is not None:
+            if self.ani.event_source is not None:  # 确保 event_source 存在
+                self.ani.event_source.stop()  # 停止之前的动画
+            self.ani = None  # 清空动画对象
         # 启动动画
         frames = int(max_time / time_step)
-        if self.ani:
-            self.ani.event_source.stop()  # 停止之前的动画
+
         self.ani = FuncAnimation(
             self.figure, self.update_gantt_chart,
             frames=frames, interval=interval, repeat=False,
