@@ -5,7 +5,7 @@ from tkinter import ttk, messagebox
 from scheduler import Scheduler
 from process import Process
 from matplotlib.animation import FuncAnimation
-import random  # 导入随机数模块
+import random
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 class SchedulerGUI:
@@ -116,12 +116,18 @@ class SchedulerGUI:
         )
         self.algorithm_menu.grid(row=4, column=1, padx=10, pady=5)
 
+        # Bind the algorithm selection change event
+        self.algorithm_menu.bind("<<ComboboxSelected>>", self.validate_time_quantum)
+
         tk.Label(
             self.root, text="Time Quantum (for RR)", font=("Helvetica", 18), bg="#f4f4f4"
         ).grid(row=4, column=2, padx=10)
 
         self.time_quantum = tk.Entry(self.root, font=("Helvetica", 18))
         self.time_quantum.grid(row=4, column=3, padx=10)
+
+        # Initial validation on load (set based on default algorithm)
+        self.validate_time_quantum()
 
     def generate_random_processes(self):
         """Randomly generate 5 example processes and update the interface"""
@@ -389,7 +395,17 @@ class SchedulerGUI:
             for process in self.processes
         ]
         self.show_gantt_chart(tasks)
+    def validate_time_quantum(self, event=None):
+        """Validate the Time Quantum field based on selected algorithm"""
+        selected_algorithm = self.algorithm_var.get()
 
+        if selected_algorithm == "Round Robin":
+            # Enable the time quantum entry field if "Round Robin" is selected
+            self.time_quantum.config(state="normal")
+        else:
+            # Disable the time quantum entry field and clear it if another algorithm is selected
+            self.time_quantum.config(state="disabled")
+            self.time_quantum.delete(0, tk.END)
     def display_metrics(self, metrics):
         """Display performance indicators"""
         for widget in self.metrics_frame.winfo_children():
@@ -427,18 +443,6 @@ class SchedulerGUI:
         index = self.input_entries.index(event.widget)
         if index % 4 != 3 and index + 1 < len(self.input_entries): 
             self.input_entries[index + 1].focus_set()
-    def increase_output_font(self):
-        """Increase the font size of the output area"""
-        current_font = self.output_text.cget("font")
-        family, size, *rest = current_font.split()
-        new_size = int(size) + 2  # 增加字体大小
-        self.output_text.configure(font=(family, new_size))
-    def decrease_output_font(self):
-        """Reducing the font size of the output area"""
-        current_font = self.output_text.cget("font")
-        family, size, *rest = current_font.split()
-        new_size = max(10, int(size) - 2)  # Make sure the font size is not less than 10
-        self.output_text.configure(font=(family, new_size))
 
 if __name__ == "__main__":
     root = tk.Tk()

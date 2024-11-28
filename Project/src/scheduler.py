@@ -5,6 +5,7 @@ class Scheduler:
 
     def fcfs(self):
         """First-Come-First-Serve (FCFS) Scheduling"""
+        print("First-Come-First-Serve (FCFS) Scheduling...")
         self.processes.sort(key=lambda p: p.arrival_time)
         current_time = 0
         for process in self.processes:
@@ -83,6 +84,7 @@ class Scheduler:
 
     def priority_scheduling(self):
         """Priority Scheduling (Non-preemptive)"""
+        print("Priority Scheduling (Non-preemptive)...")
         current_time = 0
         remaining_processes = sorted(self.processes, key=lambda p: (p.arrival_time, p.priority))
 
@@ -105,6 +107,7 @@ class Scheduler:
 
     def round_robin(self, quantum):
         """Round Robin Scheduling"""
+        print("Round Robin Scheduling...")
         queue = sorted(self.processes, key=lambda p: p.arrival_time)  # Sort by arrival time initially
         current_time = 0
         while queue:
