@@ -8,6 +8,7 @@ from matplotlib.animation import FuncAnimation
 import random
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 class SchedulerGUI:
     def __init__(self, root):
         self.root = root
@@ -20,6 +21,7 @@ class SchedulerGUI:
         self.figure = None 
         self.canvas = None 
         self.ani = None  
+        self.y_positions = {} 
         self.configure_root()
         self.create_widgets()
 
@@ -245,51 +247,93 @@ class SchedulerGUI:
         self.ax.set_ylabel("Processes")
 
         # Draw task progress bars
-        for i, task in enumerate(tasks):
+        for task in tasks:
             task_start = task["start"]
             task_end = task["start"] + task["duration"]
+
+            # Ensure color is valid
+            color = task["color"]
+
+            # Get the y position for the current task's pid (sorted by unique pid)
+            # Use self.y_positions to track unique y positions for each task
+            y_pos = self.y_positions.get(task["pid"], None)
+
+            # If pid has not been assigned a y_pos, assign one
+            if y_pos is None:
+                # Find a unique y_pos for this task's pid
+                y_pos = len(self.y_positions) + 1
+                self.y_positions[task["pid"]] = y_pos
 
             # Draw bars only if the current time is greater than the task start time
             if current_time >= task_start:
                 progress = min(current_time - task_start, task["duration"])  # Dynamic bar length
-                self.ax.barh(i + 1, progress, left=task_start, color=task["color"], edgecolor="black")
+                self.ax.barh(y_pos, progress, left=task_start, color=color, edgecolor="black")
                 
                 # Display task name inside the bar
                 self.ax.text(
-                    task_start + progress / 2, i + 1, task["name"],
+                    task_start + progress / 2, y_pos, task["pid"],
                     va="center", ha="center", color="black", fontweight="bold"
                 )
                 
                 # Add start time label
                 self.ax.text(
-                    task_start, i + 1.2, f"Start: {task_start}",
+                    task_start, y_pos + 0.2, f"S: {task_start}",
                     va="center", ha="center", fontsize=10, color="black"
                 )
 
                 # Add end time label (only when the task is completed)
-                if current_time >= task_end:
+                if current_time >= task_end or frame == len(tasks):  # Ensure the last task is shown
                     self.ax.text(
-                        task_end, i + 1.2, f"End: {task_end}",
+                        task_end, y_pos + 0.2, f"E: {task_end}",
                         va="center", ha="center", fontsize=10, color="black"
                     )
 
         # Set time range and task range
         max_time = max(task["start"] + task["duration"] for task in tasks)
         self.ax.set_xlim(0, max_time + 1)  # Time axis range
-        self.ax.set_ylim(0, len(tasks) + 1)  # Task range
+        self.ax.set_ylim(0, len(self.y_positions) + 1)  # Task range based on unique y positions
         self.canvas.draw()  # Update the figure
 
     def show_gantt_chart(self, tasks):
         """Display the Gantt chart animation"""
+        
+        # Debugging: print tasks to check structure
+        print("Tasks:", tasks)
+        
+        # Initialize y_positions as an empty dictionary to keep track of y-axis positions for unique pids
+        self.y_positions = {}
+        tasks.sort(key=lambda x: x["pid"])
+        # Iterate through tasks to ensure y_positions are assigned correctly
+        for task in tasks:
+            print("Task:", task)  # Debugging: check each task dictionary
+            
+            # Ensure that each task has 'pid' key
+            if "pid" not in task:
+                print(f"Warning: Task {task} does not have 'pid' key")
+                continue
+            
+            pid = task["pid"]
+            if pid == "Idle":
+                # Assign y = 0 for Idle
+                self.y_positions[pid] = 0
+            # If this pid has not been assigned a y position, assign one
+            elif pid not in self.y_positions:
+                # Assign y position based on the number of unique pids
+                y_pos = len(self.y_positions)
+                self.y_positions[pid] = y_pos
+
+        # Debugging: check y_positions mapping
+        print("y_positions:", self.y_positions)
+
         max_time = max(task["start"] + task["duration"] for task in tasks)
         time_step = 0.2  # Time step per frame
         interval = 100   # Frame update interval (milliseconds)
 
         # Stop any existing animation
         if self.ani is not None:
-            if self.ani.event_source is not None:  # Ensure event_source exists
-                self.ani.event_source.stop()  # Stop the previous animation
-            self.ani = None  # Clear the animation object
+            if self.ani.event_source is not None:
+                self.ani.event_source.stop()
+            self.ani = None
 
         # Start a new animation
         frames = int(max_time / time_step)
@@ -299,6 +343,7 @@ class SchedulerGUI:
             frames=frames, interval=interval, repeat=False,
             fargs=(tasks, time_step)
         )
+
 
 
     def add_process(self):
@@ -339,16 +384,16 @@ class SchedulerGUI:
             messagebox.showerror("Error", "Please select a scheduling algorithm.")
             return
 
-        # Make sure the time slice is a valid number (applicable only to Round Robin)
+        # Validate the time slice for Round Robin
         if algorithm == "Round Robin" and (not time_quantum.isdigit() or int(time_quantum) <= 0):
             messagebox.showerror("Error", "Please enter a valid positive integer for the time quantum.")
             return
 
-        # Initialize the scheduler and process
+        # Initialize the scheduler and processes
         scheduler = Scheduler(self.processes)
         quantum = int(time_quantum) if time_quantum.isdigit() else None
 
-        # Call the corresponding scheduling algorithm
+        # Run the selected scheduling algorithm
         if algorithm == "FCFS":
             scheduler.fcfs()
         elif algorithm == "SJF-Non":
@@ -360,41 +405,44 @@ class SchedulerGUI:
         elif algorithm == "Round Robin":
             scheduler.round_robin(quantum)
 
-        # Save the current process list to previous_processes
+        # Save the current processes state
         self.previous_processes = [Process(p.pid, p.arrival_time, p.burst_time, p.priority) for p in self.processes]
-        # Collecting performance metrics
+
+        # Calculate performance metrics
         avg_waiting_time = sum(p.waiting_time for p in self.processes) / len(self.processes)
         avg_turnaround_time = sum(p.turnaround_time for p in self.processes) / len(self.processes)
         context_switches = scheduler.get_context_switches()
 
-        # Update performance indicator display
+        # Update GUI with performance metrics
         self.avg_waiting_time_label.config(text=f"Average Waiting Time: {avg_waiting_time:.2f}")
         self.avg_turnaround_time_label.config(text=f"Average Turnaround Time: {avg_turnaround_time:.2f}")
         self.context_switches_label.config(text=f"Context Switches: {context_switches}")
 
-        # Update Output Area
+        # Update output area
         self.output_text.delete("1.0", tk.END)
         self.output_text.insert(tk.END, f"Scheduling Algorithm: {algorithm}\n\n")
         for process in self.processes:
             self.output_text.insert(
                 tk.END,
                 f"Process {process.pid} -> Arrival: {process.arrival_time}, "
-                f"Burst: {process.burst_time}, Start: {process.start_time}, "
-                f"Completion: {process.completion_time}, Waiting: {process.waiting_time}, "
-                f"Turnaround: {process.turnaround_time}\n"
+                f"Burst: {process.burst_time}, Priority: {process.priority}, "
+                f"Start: {process.start_time}, Completion: {process.completion_time}, "
+                f"Waiting: {process.waiting_time}, Turnaround: {process.turnaround_time}\n"
             )
-                
-        # Update Gantt chart
+
+
+        # Update Gantt chart with time-sliced tasks
         tasks = [
             {
-                "name": process.pid,
-                "start": process.start_time,
-                "duration": process.burst_time,
-                "color": process.color,
+                "pid": log["pid"] if log["pid"] != "Idle" else "Idle",
+                "start": log["start"],
+                "duration": log["duration"],
+                "color": log["color"] if log["pid"] != "Idle" else "grey"
             }
-            for process in self.processes
+            for log in scheduler.execution_log  # Assuming round_robin populates execution_log
         ]
         self.show_gantt_chart(tasks)
+
     def validate_time_quantum(self, event=None):
         """Validate the Time Quantum field based on selected algorithm"""
         selected_algorithm = self.algorithm_var.get()

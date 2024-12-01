@@ -20,15 +20,6 @@ def calculate_metrics(processes, context_switches):
         "Context Switches": context_switches
     }
 
-def plot_gantt_chart(processes):
-    plt.figure(figsize=(10, 6))
-    plt.barh([p.pid for p in processes], [p.burst_time for p in processes],
-             left=[p.start_time for p in processes], color="skyblue", edgecolor="black")
-    plt.xlabel("Time")
-    plt.ylabel("Process ID")
-    plt.title("Process Execution Timeline (Gantt Chart)")
-    plt.show()
-
 def plot_histograms(processes):
     waiting_times = [p.waiting_time for p in processes]
     turnaround_times = [p.turnaround_time for p in processes]
