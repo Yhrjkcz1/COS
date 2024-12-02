@@ -3,6 +3,7 @@ from scheduler import Scheduler
 class Visualizer:
     def __init__(self):
         self.performance_metrics = []
+        self.current_figure = None
 
     def run_all_algorithms(self, task_set, scheduler):
         """Run all algorithms on the same task set and collect performance data"""
@@ -53,10 +54,11 @@ class Visualizer:
                 })
     def plot_avg_waiting_time(self):
         """Plot Average Waiting Time comparison"""
+        self.close_previous_figure() 
         algorithms = [algo['name'] for algo in self.performance_metrics]
         avg_waiting_times = [algo['avg_waiting_time'] for algo in self.performance_metrics]
 
-        plt.figure()
+        self.current_figure = plt.figure() 
         bars = plt.bar(algorithms, avg_waiting_times, color='skyblue')
         plt.title("Average Waiting Time Comparison", fontsize=16, fontweight='bold')
         plt.xlabel("Algorithms", fontsize=14, fontweight='bold')
@@ -155,3 +157,8 @@ class Visualizer:
 
         plt.tight_layout()
         plt.show()
+    def close_previous_figure(self):
+        """Close the currently open figure, if any"""
+        if self.current_figure:
+            plt.close(self.current_figure)
+            self.current_figure = None

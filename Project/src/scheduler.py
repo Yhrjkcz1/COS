@@ -28,7 +28,7 @@ class Scheduler:
                 "start": process.start_time,
                 "duration": process.burst_time,
                 "color": process.color,
-                "response_time": process.response_time,  # 添加响应时间
+                "response_time": process.response_time,  
                 "queue_length": sum(1 for p in self.processes if p.arrival_time <= current_time and p.completion_time is None)
             })
 
@@ -68,8 +68,8 @@ class Scheduler:
                     "start": shortest_process.start_time,
                     "duration": shortest_process.burst_time,
                     "color": shortest_process.color,
-                    "response_time": shortest_process.response_time,  # 添加响应时间
-                    "queue_length": len(available_processes)  # 添加队列长度
+                    "response_time": shortest_process.response_time, 
+                    "queue_length": len(available_processes) 
                 })
 
                 remaining_processes.remove(shortest_process)
@@ -117,8 +117,8 @@ class Scheduler:
                     "start": start_time,
                     "duration": 1,  # 1 time unit per step in preemptive SJF
                     "color": shortest_process.color,
-                    "response_time": shortest_process.response_time,  # 添加响应时间
-                    "queue_length": len(ready_queue)  # 添加队列长度
+                    "response_time": shortest_process.response_time, 
+                    "queue_length": len(ready_queue)  
                 })
 
                 if shortest_process.remaining_time == 0:
@@ -171,8 +171,8 @@ class Scheduler:
                     "start": highest_priority_process.start_time,
                     "duration": highest_priority_process.burst_time,
                     "color": highest_priority_process.color,
-                    "response_time": highest_priority_process.response_time,  # 添加响应时间
-                    "queue_length": len(available_processes)  # 添加队列长度
+                    "response_time": highest_priority_process.response_time, 
+                    "queue_length": len(available_processes)  
                 })
 
                 remaining_processes.remove(highest_priority_process)
@@ -190,70 +190,71 @@ class Scheduler:
 
 
     def round_robin(self, quantum):
-        """Round Robin Scheduling with time slicing"""
-        print("Round Robin Scheduling...")
+            """Round Robin Scheduling with time slicing"""
+            print("Round Robin Scheduling...")
 
-        # 初始化日志以记录每个时间片的执行
-        self.execution_log = []
+            # Initialize the log to record the execution of each time slice
+            self.execution_log = []
 
-        # 按到达时间排序进程
-        queue = sorted(self.processes, key=lambda p: p.arrival_time)
-        current_time = 0
+            # Sort the processes by arrival time
+            queue = sorted(self.processes, key=lambda p: p.arrival_time)
+            current_time = 0
 
-        while queue:
-            has_executed = False  # 标记当前时间是否有进程被执行
-            for process in list(queue):
-                if process.arrival_time <= current_time:
-                    # 进程可以执行
+            while queue:
+                has_executed = False  # Flag to indicate whether any process has executed at the current time
+                for process in list(queue):
+                    if process.arrival_time <= current_time:
+                        # Process can be executed
 
-                    # 如果进程的start_time还未被设置，则设置为当前时间
-                    if process.start_time == -1:
-                        process.start_time = current_time
-                        process.response_time = process.start_time - process.arrival_time  # Calculate response time
-                        self.response_times.append(process.response_time)  # Add to response_times
+                        # If the process's start_time has not been set, set it to the current time
+                        if process.start_time == -1:
+                            process.start_time = current_time
+                            process.response_time = process.start_time - process.arrival_time  # Calculate response time
+                            self.response_times.append(process.response_time)  # Add to response_times
 
-                    # 记录开始时间和时间片
-                    start_time = current_time
-                    time_slice = min(process.remaining_time, quantum)
-                    process.remaining_time -= time_slice
-                    current_time += time_slice
-                    has_executed = True
+                        # Record the start time and time slice
+                        start_time = current_time
+                        time_slice = min(process.remaining_time, quantum)
+                        process.remaining_time -= time_slice
+                        current_time += time_slice
+                        has_executed = True
 
-                    # 记录日志
-                    self.execution_log.append({
-                        "pid": process.pid,
-                        "start": start_time,
-                        "duration": time_slice,
-                        "color": process.color
-                    })
+                        # Log the execution details
+                        self.execution_log.append({
+                            "pid": process.pid,
+                            "start": start_time,
+                            "duration": time_slice,
+                            "color": process.color
+                        })
 
-                    # 如果进程未完成，将其放回队列
-                    if process.remaining_time > 0:
-                        queue.append(queue.pop(0))  # Move this process to the end of the queue
-                        self.context_switches += 1  # Count the context switch
-                        print(f"Context switch at time {current_time}")
+                        # If the process is not finished, move it back to the queue
+                        if process.remaining_time > 0:
+                            queue.append(queue.pop(0))  # Move this process to the end of the queue
+                            self.context_switches += 1  # Count the context switch
+                            print(f"Context switch at time {current_time}")
+                        else:
+                            # Process has completed
+                            process.completion_time = current_time
+                            process.turnaround_time = process.completion_time - process.arrival_time
+                            process.waiting_time = process.turnaround_time - process.burst_time
+                            queue.remove(process)
+
                     else:
-                        # 进程完成
-                        process.completion_time = current_time
-                        process.turnaround_time = process.completion_time - process.arrival_time
-                        process.waiting_time = process.turnaround_time - process.burst_time
-                        queue.remove(process)
+                        continue
 
-                else:
-                    continue
+                if not has_executed:
+                    # If no processes can be executed, add an idle time slice
+                    self.execution_log.append({
+                        "pid": "I",
+                        "start": current_time,
+                        "duration": 1,
+                        "color": "#D3D3D3",  # Idle color
+                        "response_time": process.response_time,  # Add response time
+                        "queue_length": len(queue)  # Add the length of the queue
 
-            if not has_executed:
-                # 如果当前没有进程可以运行，增加空闲时间片
-                self.execution_log.append({
-                    "pid": "I",
-                    "start": current_time,
-                    "duration": 1,
-                    "color": "#D3D3D3",  # Idle color
-                    "response_time": process.response_time,  # 添加响应时间
-                    "queue_length": len(queue)  # 添加队列长度
+                    })
+                    current_time += 1
 
-                })
-                current_time += 1
 
     def get_context_switches(self):
         return self.context_switches

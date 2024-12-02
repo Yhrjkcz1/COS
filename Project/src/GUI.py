@@ -224,7 +224,7 @@ class SchedulerGUI:
         output_frame.grid_rowconfigure(0, weight=1)
         output_frame.grid_columnconfigure(0, weight=1)
 
-        self.output_text = tk.Text(output_frame, height=10, wrap="word", font=("Consolas", 14))
+        self.output_text = tk.Text(output_frame, height=10, wrap="word", font=("Consolas", 15))
         self.output_text.grid(row=0, column=0, sticky="nsew")
 
         scrollbar = tk.Scrollbar(output_frame, orient="vertical", command=self.output_text.yview)
