@@ -4,6 +4,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from scheduler import Scheduler
 from process import Process
+from visual import Visualizer
 from matplotlib.animation import FuncAnimation
 import random
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -13,7 +14,7 @@ class SchedulerGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("CPU Scheduling Simulator")
-        self.root.geometry("1400x800")
+        self.root.geometry("1400x1000")
         self.processes = []
         self.previous_processes = []  
         self.scheduler = Scheduler(self.processes)
@@ -24,6 +25,8 @@ class SchedulerGUI:
         self.y_positions = {} 
         self.configure_root()
         self.create_widgets()
+        self.visualizer = Visualizer() 
+        self.create_comparison_buttons()
 
     def configure_root(self):
         """Configure the background color and grid layout of the main window"""
@@ -207,7 +210,7 @@ class SchedulerGUI:
         scrollbar.grid(row=0, column=1, sticky="ns")
         self.output_text.config(yscrollcommand=scrollbar.set)
 
-    def create_metrics_frame(self):
+    def create_metrics_frame(self): 
         """Create the performance metrics display frame"""
         self.metrics_frame = tk.Frame(self.root, bg="#f4f4f4")
         self.metrics_frame.grid(row=6, column=3, columnspan=1, sticky="nsew", padx=10, pady=10)
@@ -229,6 +232,19 @@ class SchedulerGUI:
         self.context_switches_label = tk.Label(self.metrics_frame, text="Context Switches:", font=("Helvetica", 14), bg="#f4f4f4")
         self.context_switches_label.grid(row=4, column=0, sticky="w", pady=5)
 
+        # Add four buttons in two rows and two columns at the bottom
+        button1 =tk.Button(self.metrics_frame, text="Average Waiting Time", command=self.plot_avg_waiting_time).grid(row=0, column=0, padx=5)
+        button1.grid(row=5, column=0, padx=10, pady=10, sticky="nsew")
+
+        button2 =tk.Button(self.metrics_frame, text="Average Turnaround Time", command=self.plot_avg_turnaround_time).grid(row=0, column=1, padx=5)
+        button2.grid(row=5, column=1, padx=10, pady=10, sticky="nsew")
+
+        button3 =tk.Button(self.metrics_frame, text="Average Response Time", command=self.plot_avg_response_time).grid(row=0, column=2, padx=5)
+        button3.grid(row=6, column=0, padx=10, pady=10, sticky="nsew")
+
+        button4 =tk.Button(self.metrics_frame, text="Overall Comparison", command=self.plot_overall_comparison).grid(row=0, column=3, padx=5)
+        button4.grid(row=6, column=1, padx=10, pady=10, sticky="nsew")
+            
 
 
 
@@ -484,6 +500,18 @@ class SchedulerGUI:
             tk.Label(self.metrics_frame, text=f"{metric}:", font=("Helvetica", 16)).grid(row=row, column=0, padx=10, sticky="W")
             tk.Label(self.metrics_frame, text=f"{value:.2f}", font=("Helvetica", 16)).grid(row=row, column=1, padx=10, sticky="E")
             row += 1
+
+    def plot_avg_waiting_time(self):
+        self.visualizer.plot_avg_waiting_time() 
+
+    def plot_avg_turnaround_time(self):
+        self.visualizer.plot_avg_turnaround_time() 
+
+    def plot_avg_response_time(self):
+        self.visualizer.plot_avg_response_time()  
+
+    def plot_overall_comparison(self):
+        self.visualizer.plot_overall_comparison()  
     def create_entry(self, row, column):
         """Create an input box and bind arrow key events"""
         entry = tk.Entry(self.root, font=("Helvetica", 14))
