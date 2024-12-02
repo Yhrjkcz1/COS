@@ -200,7 +200,7 @@ class SchedulerGUI:
         output_frame.grid_rowconfigure(0, weight=1)
         output_frame.grid_columnconfigure(0, weight=1)
 
-        self.output_text = tk.Text(output_frame, height=10, wrap="word", font=("Helvetica", 14))
+        self.output_text = tk.Text(output_frame, height=10, wrap="word", font=("Consolas", 14))
         self.output_text.grid(row=0, column=0, sticky="nsew")
 
         scrollbar = tk.Scrollbar(output_frame, orient="vertical", command=self.output_text.yview)
@@ -223,8 +223,14 @@ class SchedulerGUI:
         self.avg_turnaround_time_label = tk.Label(self.metrics_frame, text="Average Turnaround Time:", font=("Helvetica", 14), bg="#f4f4f4")
         self.avg_turnaround_time_label.grid(row=2, column=0, sticky="w", pady=5)
 
+        self.avg_response_time_label = tk.Label(self.metrics_frame, text="Average Response Time:", font=("Helvetica", 14), bg="#f4f4f4")
+        self.avg_response_time_label.grid(row=3, column=0, sticky="w", pady=5)  # Adjust grid positioning as needed
+
         self.context_switches_label = tk.Label(self.metrics_frame, text="Context Switches:", font=("Helvetica", 14), bg="#f4f4f4")
-        self.context_switches_label.grid(row=3, column=0, sticky="w", pady=5)
+        self.context_switches_label.grid(row=4, column=0, sticky="w", pady=5)
+
+
+
 
     def create_gantt_chart_area(self):
         """Create the Gantt chart area in the GUI"""
@@ -255,12 +261,10 @@ class SchedulerGUI:
             color = task["color"]
 
             # Get the y position for the current task's pid (sorted by unique pid)
-            # Use self.y_positions to track unique y positions for each task
             y_pos = self.y_positions.get(task["pid"], None)
 
             # If pid has not been assigned a y_pos, assign one
             if y_pos is None:
-                # Find a unique y_pos for this task's pid
                 y_pos = len(self.y_positions) + 1
                 self.y_positions[task["pid"]] = y_pos
 
@@ -268,21 +272,21 @@ class SchedulerGUI:
             if current_time >= task_start:
                 progress = min(current_time - task_start, task["duration"])  # Dynamic bar length
                 self.ax.barh(y_pos, progress, left=task_start, color=color, edgecolor="black")
-                
+
                 # Display task name inside the bar
                 self.ax.text(
                     task_start + progress / 2, y_pos, task["pid"],
                     va="center", ha="center", color="black", fontweight="bold"
                 )
-                
+
                 # Add start time label
                 self.ax.text(
                     task_start, y_pos + 0.2, f"S: {task_start}",
                     va="center", ha="center", fontsize=10, color="black"
                 )
 
-                # Add end time label (only when the task is completed)
-                if current_time >= task_end or frame == len(tasks):  # Ensure the last task is shown
+                # Add end time label when the task is completed or on the last frame
+                if current_time >= task_end or frame == int((max(t["start"] + t["duration"] for t in tasks)) / time_step) - 1:
                     self.ax.text(
                         task_end, y_pos + 0.2, f"E: {task_end}",
                         va="center", ha="center", fontsize=10, color="black"
@@ -293,6 +297,7 @@ class SchedulerGUI:
         self.ax.set_xlim(0, max_time + 1)  # Time axis range
         self.ax.set_ylim(0, len(self.y_positions) + 1)  # Task range based on unique y positions
         self.canvas.draw()  # Update the figure
+
 
     def show_gantt_chart(self, tasks):
         """Display the Gantt chart animation"""
@@ -415,10 +420,13 @@ class SchedulerGUI:
         avg_waiting_time = sum(p.waiting_time for p in self.processes) / len(self.processes)
         avg_turnaround_time = sum(p.turnaround_time for p in self.processes) / len(self.processes)
         context_switches = scheduler.get_context_switches()
+        # Calculate average response time
+        avg_response_time = sum(p.response_time for p in self.processes if p.response_time is not None) / len(self.processes)
 
         # Update GUI with performance metrics
         self.avg_waiting_time_label.config(text=f"Average Waiting Time: {avg_waiting_time:.2f}")
         self.avg_turnaround_time_label.config(text=f"Average Turnaround Time: {avg_turnaround_time:.2f}")
+        self.avg_response_time_label.config(text=f"Average Response Time: {avg_response_time:.2f}")  # Add this line
         self.context_switches_label.config(text=f"Context Switches: {context_switches}")
 
         # Update output area
@@ -427,24 +435,31 @@ class SchedulerGUI:
         for process in self.processes:
             self.output_text.insert(
                 tk.END,
-                f"Process {process.pid} -> Arrival: {process.arrival_time}, "
-                f"Burst: {process.burst_time}, Priority: {process.priority}, "
-                f"Start: {process.start_time}, Completion: {process.completion_time}, "
-                f"Waiting: {process.waiting_time}, Turnaround: {process.turnaround_time}\n"
+                f"Process {process.pid:>2} -> "
+                f"Arrival: {process.arrival_time:>2}, "
+                f"Burst: {process.burst_time:>2}, "
+                f"Priority: {process.priority:>2}, "
+                f"Start: {process.start_time:>2}, "
+                f"Completion: {process.completion_time:>2}, "
+                f"Waiting: {process.waiting_time:>2}, "
+                f"Turnaround: {process.turnaround_time:>2}, "
+                f"Response: {process.response_time:>2}\n"
             )
-
 
         # Update Gantt chart with time-sliced tasks
         tasks = [
             {
-                "pid": log["pid"] if log["pid"] != "Idle" else "Idle",
+                "pid": log["pid"] if log["pid"] != "I" else "I",
                 "start": log["start"],
                 "duration": log["duration"],
-                "color": log["color"] if log["pid"] != "Idle" else "grey"
+                "color": log["color"] if log["pid"] != "I" else "grey",
+                "response_time": log.get("response_time", None),  # Add response_time
+                "queue_length": log.get("queue_length", None)  # Add queue_length
             }
             for log in scheduler.execution_log  # Assuming round_robin populates execution_log
         ]
         self.show_gantt_chart(tasks)
+
 
     def validate_time_quantum(self, event=None):
         """Validate the Time Quantum field based on selected algorithm"""

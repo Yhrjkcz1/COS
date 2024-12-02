@@ -1,9 +1,10 @@
-
 class Scheduler:
     def __init__(self, processes):
         self.processes = processes
         self.context_switches = 0  # Initialize context_switches as an instance variable
         self.execution_log = []  # To store the logs for Gantt chart
+        self.response_times = []  # To store response times for each process
+        self.queue_lengths = []  # To store the queue length at each time slice
 
     def fcfs(self):
         """First-Come-First-Serve (FCFS) Scheduling"""
@@ -14,6 +15,8 @@ class Scheduler:
             if current_time < process.arrival_time:
                 current_time = process.arrival_time
             process.start_time = current_time
+            process.response_time = process.start_time - process.arrival_time  # Calculate response time
+            self.response_times.append(process.response_time)  # Add to response_times
             process.waiting_time = current_time - process.arrival_time
             current_time += process.burst_time
             process.completion_time = current_time
@@ -24,7 +27,9 @@ class Scheduler:
                 "pid": process.pid,
                 "start": process.start_time,
                 "duration": process.burst_time,
-                "color": process.color
+                "color": process.color,
+                "response_time": process.response_time,  # 添加响应时间
+                "queue_length": sum(1 for p in self.processes if p.arrival_time <= current_time and p.completion_time is None)
             })
 
     def sjf_non_preemptive(self):
@@ -36,6 +41,9 @@ class Scheduler:
         while remaining_processes:
             available_processes = [p for p in remaining_processes if p.arrival_time <= current_time]
 
+            # Record the queue length
+            self.queue_lengths.append(len(available_processes))
+
             if available_processes:
                 # Select the process with the shortest burst time
                 shortest_process = min(available_processes, key=lambda p: p.burst_time)
@@ -45,20 +53,23 @@ class Scheduler:
 
                 if shortest_process.start_time == -1:  # This means the process hasn't started yet
                     shortest_process.start_time = current_time
-                    self.context_switches += 1  # Increment context switch
+                    shortest_process.response_time = shortest_process.start_time - shortest_process.arrival_time  # Calculate response time
+                    self.response_times.append(shortest_process.response_time)  # Add to response_times
                     print(f"Process {shortest_process.pid} started at {shortest_process.start_time}")
 
                 shortest_process.waiting_time = current_time - shortest_process.arrival_time
                 current_time += shortest_process.burst_time
                 shortest_process.completion_time = current_time
                 shortest_process.turnaround_time = shortest_process.completion_time - shortest_process.arrival_time
-
+                
                 # Record the process execution for the Gantt chart
                 self.execution_log.append({
                     "pid": shortest_process.pid,
                     "start": shortest_process.start_time,
                     "duration": shortest_process.burst_time,
-                    "color": shortest_process.color
+                    "color": shortest_process.color,
+                    "response_time": shortest_process.response_time,  # 添加响应时间
+                    "queue_length": len(available_processes)  # 添加队列长度
                 })
 
                 remaining_processes.remove(shortest_process)
@@ -78,6 +89,9 @@ class Scheduler:
             while remaining_processes and remaining_processes[0].arrival_time <= current_time:
                 ready_queue.append(remaining_processes.pop(0))
 
+            # Record the queue length
+            self.queue_lengths.append(len(ready_queue))
+
             if ready_queue:
                 # Sort ready_queue by remaining burst time
                 ready_queue.sort(key=lambda p: p.remaining_time)
@@ -86,6 +100,8 @@ class Scheduler:
 
                 if shortest_process.start_time == -1:  # This means the process hasn't started yet
                     shortest_process.start_time = current_time
+                    shortest_process.response_time = shortest_process.start_time - shortest_process.arrival_time  # Calculate response time
+                    self.response_times.append(shortest_process.response_time)  # Add to response_times
                     if last_process != shortest_process:  # If it's a different process, increment context switch
                         self.context_switches += 1
                     print(f"Process {shortest_process.pid} started at {shortest_process.start_time}")
@@ -100,7 +116,9 @@ class Scheduler:
                     "pid": shortest_process.pid,
                     "start": start_time,
                     "duration": 1,  # 1 time unit per step in preemptive SJF
-                    "color": shortest_process.color
+                    "color": shortest_process.color,
+                    "response_time": shortest_process.response_time,  # 添加响应时间
+                    "queue_length": len(ready_queue)  # 添加队列长度
                 })
 
                 if shortest_process.remaining_time == 0:
@@ -114,8 +132,6 @@ class Scheduler:
             else:
                 current_time += 1  # Increment time if no processes are ready
 
-
-
     def priority_scheduling(self):
         """Priority Scheduling (Non-preemptive)"""
         print("Priority Scheduling (Non-preemptive)...")
@@ -125,13 +141,26 @@ class Scheduler:
         while remaining_processes:
             # Find processes that have arrived and sort by priority
             available_processes = [p for p in remaining_processes if p.arrival_time <= current_time]
+
+            # Record the queue length
+            self.queue_lengths.append(len(available_processes))
+
             if available_processes:
                 # Choose the process with the highest priority (lowest priority number)
                 highest_priority_process = min(available_processes, key=lambda p: p.priority)
                 if current_time < highest_priority_process.arrival_time:
                     current_time = highest_priority_process.arrival_time
-                highest_priority_process.start_time = current_time
+
+                # Set start time if not already set
+                if highest_priority_process.start_time == -1:
+                    highest_priority_process.start_time = current_time
+                    highest_priority_process.response_time = highest_priority_process.start_time - highest_priority_process.arrival_time
+                    self.response_times.append(highest_priority_process.response_time)
+
+                # Update waiting time
                 highest_priority_process.waiting_time = current_time - highest_priority_process.arrival_time
+
+                # Execute the process
                 current_time += highest_priority_process.burst_time
                 highest_priority_process.completion_time = current_time
                 highest_priority_process.turnaround_time = highest_priority_process.completion_time - highest_priority_process.arrival_time
@@ -141,12 +170,24 @@ class Scheduler:
                     "pid": highest_priority_process.pid,
                     "start": highest_priority_process.start_time,
                     "duration": highest_priority_process.burst_time,
-                    "color": highest_priority_process.color
+                    "color": highest_priority_process.color,
+                    "response_time": highest_priority_process.response_time,  # 添加响应时间
+                    "queue_length": len(available_processes)  # 添加队列长度
                 })
 
                 remaining_processes.remove(highest_priority_process)
             else:
-                current_time += 1  # Increment time if no processes are available yet
+                # Increment time if no processes are available yet
+                self.execution_log.append({
+                    "pid": "I",  # Idle
+                    "start": current_time,
+                    "duration": 1,
+                    "color": "#D3D3D3",  # Idle color
+                    "response_time": None,  # Idle has no response time
+                    "queue_length": len(remaining_processes)  # Remaining processes count
+                })
+                current_time += 1
+
 
     def round_robin(self, quantum):
         """Round Robin Scheduling with time slicing"""
@@ -168,6 +209,8 @@ class Scheduler:
                     # 如果进程的start_time还未被设置，则设置为当前时间
                     if process.start_time == -1:
                         process.start_time = current_time
+                        process.response_time = process.start_time - process.arrival_time  # Calculate response time
+                        self.response_times.append(process.response_time)  # Add to response_times
 
                     # 记录开始时间和时间片
                     start_time = current_time
@@ -195,6 +238,7 @@ class Scheduler:
                         process.turnaround_time = process.completion_time - process.arrival_time
                         process.waiting_time = process.turnaround_time - process.burst_time
                         queue.remove(process)
+
                 else:
                     continue
 
@@ -204,12 +248,12 @@ class Scheduler:
                     "pid": "I",
                     "start": current_time,
                     "duration": 1,
-                    "color": "#D3D3D3"  # Idle color
+                    "color": "#D3D3D3",  # Idle color
+                    "response_time": process.response_time,  # 添加响应时间
+                    "queue_length": len(queue)  # 添加队列长度
+
                 })
                 current_time += 1
 
-
-
     def get_context_switches(self):
-        # Ensure context_switches is properly returned
         return self.context_switches
