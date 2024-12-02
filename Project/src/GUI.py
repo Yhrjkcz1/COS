@@ -178,6 +178,28 @@ class SchedulerGUI:
         # Clear algorithm selection and time quantum
         self.algorithm_var.set("")
         self.time_quantum.delete(0, tk.END)
+    def restart_simulation(self):
+        """Reset simulation state but retain user input processes"""
+        # Clear previous performance metrics
+        self.performance_metrics = []
+        self.output_text.delete("1.0", tk.END)
+
+        # Destroy the Gantt chart (if it exists)
+        if self.canvas is not None:
+            self.canvas.get_tk_widget().destroy()
+            self.canvas = None
+
+        # Recreate the Gantt chart area
+        self.create_gantt_chart_area()
+
+        # Reset performance metrics display
+        self.avg_waiting_time_label.config(text="Average Waiting Time:")
+        self.avg_turnaround_time_label.config(text="Average Turnaround Time:")
+        self.context_switches_label.config(text="Context Switches:")
+
+        # Retain process input data (no need to clear the `self.processes` list)
+        self.output_text.insert(tk.END, "Simulation state cleared. Ready to run again with existing processes.\n")
+
 
     def reload_last_simulation(self):
         """Reload the process data from the last run"""
@@ -272,8 +294,6 @@ class SchedulerGUI:
         self.metrics_frame.grid_rowconfigure(6, weight=0)
         self.metrics_frame.grid_rowconfigure(7, weight=0)
 
-
- 
     def create_gantt_chart_area(self):
         """Create the Gantt chart area in the GUI"""
         # Initialize the Matplotlib figure
@@ -339,7 +359,6 @@ class SchedulerGUI:
         self.ax.set_xlim(0, max_time + 1)  # Time axis range
         self.ax.set_ylim(0, len(self.y_positions) + 1)  # Task range based on unique y positions
         self.canvas.draw()  # Update the figure
-
 
     def show_gantt_chart(self, tasks):
         """Display the Gantt chart animation"""
@@ -429,7 +448,6 @@ class SchedulerGUI:
         """Runs the selected scheduling algorithm and updates the GUI"""
         algorithm = self.algorithm_var.get()
         time_quantum = self.time_quantum.get()
-
         if not algorithm:
             messagebox.showerror("Error", "Please select a scheduling algorithm.")
             return
@@ -438,7 +456,7 @@ class SchedulerGUI:
         if algorithm == "Round Robin" and (not time_quantum.isdigit() or int(time_quantum) <= 0):
             messagebox.showerror("Error", "Please enter a valid positive integer for the time quantum.")
             return
-
+        self.restart_simulation()
         # Initialize the scheduler and processes
         scheduler = Scheduler(self.processes)
         quantum = int(time_quantum) if time_quantum.isdigit() else None
