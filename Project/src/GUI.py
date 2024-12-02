@@ -43,6 +43,7 @@ class SchedulerGUI:
         self.create_output_area()
         self.create_metrics_frame()
         self.create_gantt_chart_area() 
+        self.current_gantt_window = None
  
     def create_title(self):
         """Create a title tag"""
@@ -363,9 +364,9 @@ class SchedulerGUI:
     def show_gantt_chart(self, tasks):
         """Display the Gantt chart animation"""
         
-        # Debugging: print tasks to check structure
-        print("Tasks:", tasks)
-        
+        if hasattr(self, "current_gantt_window") and self.current_gantt_window is not None:
+            plt.close(self.current_gantt_window)
+            self.current_gantt_window = None
         # Initialize y_positions as an empty dictionary to keep track of y-axis positions for unique pids
         self.y_positions = {}
         tasks.sort(key=lambda x: x["pid"])
@@ -376,8 +377,7 @@ class SchedulerGUI:
         next_y_pos = 1  # Start assigning y positions from 1
         
         for task in tasks:
-            print("Task:", task)  # Debugging: check each task dictionary
-            
+
             # Ensure that each task has 'pid' key
             if "pid" not in task:
                 print(f"Warning: Task {task} does not have 'pid' key")
@@ -393,11 +393,8 @@ class SchedulerGUI:
                 self.y_positions[pid] = next_y_pos
                 next_y_pos += 1  # Increment for the next process
 
-        # Debugging: check y_positions mapping
-        print("y_positions:", self.y_positions)
-
         max_time = max(task["start"] + task["duration"] for task in tasks)
-        time_step = 0.2  # Time step per frame
+        time_step = 0.4  # Time step per frame
         interval = 100   # Frame update interval (milliseconds)
 
         # Stop any existing animation
@@ -405,7 +402,7 @@ class SchedulerGUI:
             if self.ani.event_source is not None:
                 self.ani.event_source.stop()
             self.ani = None
-
+        self.current_gantt_window = self.figure
         # Start a new animation
         frames = int(max_time / time_step)
 
