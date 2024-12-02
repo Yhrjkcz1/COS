@@ -1,27 +1,48 @@
-# visual.py
-
 import matplotlib.pyplot as plt
-
+from scheduler import Scheduler
 class Visualizer:
     def __init__(self):
         self.performance_metrics = []
 
     def run_all_algorithms(self, task_set, scheduler):
         """Run all algorithms on the same task set and collect performance data"""
-        algorithms = ["FCFS", "SJF", "Priority", "RR"]  # Example list of algorithms
+        # List of algorithms corresponding to your scheduler methods
+        algorithms = [
+            ("FCFS", scheduler.fcfs),
+            ("SJF-Non", scheduler.sjf_non_preemptive),
+            ("SJF-Preemptive", scheduler.sjf_preemptive),
+            ("Priority Scheduling", scheduler.priority_scheduling),
+        ]
+        
+        quantum_values = [1, 2, 3]  # Three different quantum values for Round Robin
         self.performance_metrics = []  # To store performance data for each algorithm
 
-        for algo in algorithms:
-            scheduler.set_algorithm(algo)  # Set the current algorithm
-            scheduler.run_scheduler(task_set)  # Run the scheduler with the current algorithm
-
-            # Collect performance data
+        # Run each algorithm and collect performance metrics
+        for algo_name, algo_func in algorithms:
+            # Run each algorithm (e.g., FCFS, SJF, Priority) without quantum
+            algo_func()
             avg_waiting_time = sum(task.waiting_time for task in task_set) / len(task_set)
             avg_turnaround_time = sum(task.turnaround_time for task in task_set) / len(task_set)
             avg_response_time = sum(task.response_time for task in task_set) / len(task_set)
 
+            # Store the performance metrics for non-Round Robin algorithms
             self.performance_metrics.append({
-                "name": algo,
+                "name": algo_name,
+                "avg_waiting_time": avg_waiting_time,
+                "avg_turnaround_time": avg_turnaround_time,
+                "avg_response_time": avg_response_time
+            })
+
+        # Run Round Robin with different quantum values
+        for quantum in quantum_values:
+            scheduler.round_robin(quantum)  # Run Round Robin with the current quantum value
+            avg_waiting_time = sum(task.waiting_time for task in task_set) / len(task_set)
+            avg_turnaround_time = sum(task.turnaround_time for task in task_set) / len(task_set)
+            avg_response_time = sum(task.response_time for task in task_set) / len(task_set)
+
+            # Store the performance metrics for each quantum value in Round Robin
+            self.performance_metrics.append({
+                "name": f"Round Robin (Quantum {quantum})",
                 "avg_waiting_time": avg_waiting_time,
                 "avg_turnaround_time": avg_turnaround_time,
                 "avg_response_time": avg_response_time
@@ -37,6 +58,8 @@ class Visualizer:
         plt.title("Average Waiting Time Comparison")
         plt.xlabel("Algorithms")
         plt.ylabel("Average Waiting Time")
+        plt.xticks(rotation=45, ha='right')
+        plt.tight_layout()
         plt.show()
 
     def plot_avg_turnaround_time(self):
@@ -49,6 +72,8 @@ class Visualizer:
         plt.title("Average Turnaround Time Comparison")
         plt.xlabel("Algorithms")
         plt.ylabel("Average Turnaround Time")
+        plt.xticks(rotation=45, ha='right')
+        plt.tight_layout()
         plt.show()
 
     def plot_avg_response_time(self):
@@ -61,6 +86,8 @@ class Visualizer:
         plt.title("Average Response Time Comparison")
         plt.xlabel("Algorithms")
         plt.ylabel("Average Response Time")
+        plt.xticks(rotation=45, ha='right')
+        plt.tight_layout()
         plt.show()
 
     def plot_overall_comparison(self):

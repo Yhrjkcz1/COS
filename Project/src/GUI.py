@@ -26,7 +26,6 @@ class SchedulerGUI:
         self.configure_root()
         self.create_widgets()
         self.visualizer = Visualizer() 
-        self.create_comparison_buttons()
 
     def configure_root(self):
         """Configure the background color and grid layout of the main window"""
@@ -210,9 +209,9 @@ class SchedulerGUI:
         scrollbar.grid(row=0, column=1, sticky="ns")
         self.output_text.config(yscrollcommand=scrollbar.set)
 
-    def create_metrics_frame(self): 
+    def create_metrics_frame(self):  
         """Create the performance metrics display frame"""
-        self.metrics_frame = tk.Frame(self.root, bg="#f4f4f4")
+        self.metrics_frame = tk.Frame(self.root, bg="#f4f4f4", width=50, height=50)  # Fixed size
         self.metrics_frame.grid(row=6, column=3, columnspan=1, sticky="nsew", padx=10, pady=10)
 
         # Add title label
@@ -227,27 +226,54 @@ class SchedulerGUI:
         self.avg_turnaround_time_label.grid(row=2, column=0, sticky="w", pady=5)
 
         self.avg_response_time_label = tk.Label(self.metrics_frame, text="Average Response Time:", font=("Helvetica", 14), bg="#f4f4f4")
-        self.avg_response_time_label.grid(row=3, column=0, sticky="w", pady=5)  # Adjust grid positioning as needed
+        self.avg_response_time_label.grid(row=3, column=0, sticky="w", pady=5)
 
         self.context_switches_label = tk.Label(self.metrics_frame, text="Context Switches:", font=("Helvetica", 14), bg="#f4f4f4")
         self.context_switches_label.grid(row=4, column=0, sticky="w", pady=5)
 
-        # Add four buttons in two rows and two columns at the bottom
-        button1 =tk.Button(self.metrics_frame, text="Average Waiting Time", command=self.plot_avg_waiting_time).grid(row=0, column=0, padx=5)
-        button1.grid(row=5, column=0, padx=10, pady=10, sticky="nsew")
+        # Add comparison title label (placed below the Performance Metrics section)
+        self.comparison_title = tk.Label(self.metrics_frame, text="Algorithm Comparison", font=("Helvetica", 16, "bold"), bg="#f4f4f4")
+        self.comparison_title.grid(row=5, column=0, columnspan=2, pady=10)
 
-        button2 =tk.Button(self.metrics_frame, text="Average Turnaround Time", command=self.plot_avg_turnaround_time).grid(row=0, column=1, padx=5)
-        button2.grid(row=5, column=1, padx=10, pady=10, sticky="nsew")
+        # Create buttons for metrics comparison (placed in rows below "Algorithm Comparison")
+        button1 = tk.Button(
+            self.metrics_frame, text="Waiting Time", font=("Helvetica", 14),
+            bg="#d9ead3", command=self.plot_avg_waiting_time
+        )
+        button1.grid(row=6, column=0, pady=8, padx=2)
 
-        button3 =tk.Button(self.metrics_frame, text="Average Response Time", command=self.plot_avg_response_time).grid(row=0, column=2, padx=5)
-        button3.grid(row=6, column=0, padx=10, pady=10, sticky="nsew")
+        button2 = tk.Button(
+            self.metrics_frame, text="Turnaround Time", font=("Helvetica", 14),
+            bg="#c9daf8", command=self.plot_avg_turnaround_time
+        )
+        button2.grid(row=6, column=1, pady=8, padx=2, sticky="ew")
 
-        button4 =tk.Button(self.metrics_frame, text="Overall Comparison", command=self.plot_overall_comparison).grid(row=0, column=3, padx=5)
-        button4.grid(row=6, column=1, padx=10, pady=10, sticky="nsew")
-            
+        button3 = tk.Button(
+            self.metrics_frame, text="Response Time", font=("Helvetica", 14),
+            bg="#fce5cd", command=self.plot_avg_response_time
+        )
+        button3.grid(row=7, column=0, pady=8, padx=2)
+
+        button4 = tk.Button(
+            self.metrics_frame, text="Overall Compare", font=("Helvetica", 14),
+            bg="#f4cccc", command=self.plot_overall_comparison
+        )
+        button4.grid(row=7, column=1, pady=8, padx=2, sticky="ew")
+
+        # Set equal column width by configuring grid columns (keep columns fixed)
+        self.metrics_frame.grid_columnconfigure(0, weight=0, minsize=25)  # Don't let the column expand
+        self.metrics_frame.grid_columnconfigure(1, weight=0, minsize=25)  # Same for the second column
+        self.metrics_frame.grid_rowconfigure(0, weight=0)  # Don't let the row expand either
+        self.metrics_frame.grid_rowconfigure(1, weight=0)
+        self.metrics_frame.grid_rowconfigure(2, weight=0)
+        self.metrics_frame.grid_rowconfigure(3, weight=0)
+        self.metrics_frame.grid_rowconfigure(4, weight=0)
+        self.metrics_frame.grid_rowconfigure(5, weight=0)
+        self.metrics_frame.grid_rowconfigure(6, weight=0)
+        self.metrics_frame.grid_rowconfigure(7, weight=0)
 
 
-
+ 
     def create_gantt_chart_area(self):
         """Create the Gantt chart area in the GUI"""
         # Initialize the Matplotlib figure
@@ -475,6 +501,7 @@ class SchedulerGUI:
             for log in scheduler.execution_log  # Assuming round_robin populates execution_log
         ]
         self.show_gantt_chart(tasks)
+        self.visualizer.run_all_algorithms(self.processes,scheduler)
 
 
     def validate_time_quantum(self, event=None):
