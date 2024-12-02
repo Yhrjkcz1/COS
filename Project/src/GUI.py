@@ -303,7 +303,12 @@ class SchedulerGUI:
         # Initialize y_positions as an empty dictionary to keep track of y-axis positions for unique pids
         self.y_positions = {}
         tasks.sort(key=lambda x: x["pid"])
-        # Iterate through tasks to ensure y_positions are assigned correctly
+        # Check if 'Idle' exists in the tasks
+        has_idle = any(task["pid"] == "I" for task in tasks)
+        
+        # Assign y position starting from 1 for processes, and 0 for Idle if it exists
+        next_y_pos = 1  # Start assigning y positions from 1
+        
         for task in tasks:
             print("Task:", task)  # Debugging: check each task dictionary
             
@@ -313,14 +318,14 @@ class SchedulerGUI:
                 continue
             
             pid = task["pid"]
-            if pid == "Idle":
-                # Assign y = 0 for Idle
+            
+            if pid == "I" and "I" not in self.y_positions:
+                # If Idle exists, assign it y=0
                 self.y_positions[pid] = 0
-            # If this pid has not been assigned a y position, assign one
             elif pid not in self.y_positions:
-                # Assign y position based on the number of unique pids
-                y_pos = len(self.y_positions)
-                self.y_positions[pid] = y_pos
+                # If it's not Idle, assign the next available y position starting from 1
+                self.y_positions[pid] = next_y_pos
+                next_y_pos += 1  # Increment for the next process
 
         # Debugging: check y_positions mapping
         print("y_positions:", self.y_positions)
@@ -343,8 +348,6 @@ class SchedulerGUI:
             frames=frames, interval=interval, repeat=False,
             fargs=(tasks, time_step)
         )
-
-
 
     def add_process(self):
         try:

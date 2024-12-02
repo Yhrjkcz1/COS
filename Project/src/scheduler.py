@@ -71,6 +71,7 @@ class Scheduler:
         current_time = 0
         remaining_processes = sorted(self.processes, key=lambda p: p.arrival_time)
         ready_queue = []
+        last_process = None  # Track the last executed process
 
         while remaining_processes or ready_queue:
             # Move processes from remaining_processes to ready_queue as time passes
@@ -85,7 +86,8 @@ class Scheduler:
 
                 if shortest_process.start_time == -1:  # This means the process hasn't started yet
                     shortest_process.start_time = current_time
-                    self.context_switches += 1  # Increment context switch
+                    if last_process != shortest_process:  # If it's a different process, increment context switch
+                        self.context_switches += 1
                     print(f"Process {shortest_process.pid} started at {shortest_process.start_time}")
 
                 # Execute process for 1 time unit
@@ -106,8 +108,13 @@ class Scheduler:
                     shortest_process.turnaround_time = shortest_process.completion_time - shortest_process.arrival_time
                     shortest_process.waiting_time = shortest_process.turnaround_time - shortest_process.burst_time
                     ready_queue.remove(shortest_process)  # Process is completed and removed from queue
+
+                # Update the last executed process
+                last_process = shortest_process
             else:
                 current_time += 1  # Increment time if no processes are ready
+
+
 
     def priority_scheduling(self):
         """Priority Scheduling (Non-preemptive)"""
@@ -177,7 +184,12 @@ class Scheduler:
                         "color": process.color
                     })
 
-                    if process.remaining_time == 0:
+                    # 如果进程未完成，将其放回队列
+                    if process.remaining_time > 0:
+                        queue.append(queue.pop(0))  # Move this process to the end of the queue
+                        self.context_switches += 1  # Count the context switch
+                        print(f"Context switch at time {current_time}")
+                    else:
                         # 进程完成
                         process.completion_time = current_time
                         process.turnaround_time = process.completion_time - process.arrival_time
@@ -189,12 +201,13 @@ class Scheduler:
             if not has_executed:
                 # 如果当前没有进程可以运行，增加空闲时间片
                 self.execution_log.append({
-                    "pid": "Idle",
+                    "pid": "I",
                     "start": current_time,
                     "duration": 1,
                     "color": "#D3D3D3"  # Idle color
                 })
                 current_time += 1
+
 
 
     def get_context_switches(self):
