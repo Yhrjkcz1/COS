@@ -550,6 +550,9 @@ class SchedulerGUI:
             }
             for log in scheduler.execution_log  # Assuming round_robin populates execution_log
         ]
+        if hasattr(self, "current_gantt_window") and self.current_gantt_window is not None:
+            plt.close(self.current_gantt_window)
+            self.current_gantt_window = None
         self.show_gantt_chart(tasks)
         self.visualizer.run_all_algorithms(self.processes,scheduler)
 
