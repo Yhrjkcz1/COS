@@ -1,4 +1,6 @@
 # src/gui.py
+import copy
+
 
 import tkinter as tk
 from tkinter import ttk, messagebox
@@ -14,7 +16,7 @@ class SchedulerGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("CPU Scheduling Simulator")
-        self.root.geometry("1400x1000")
+        self.root.geometry("1400x1200")
         self.processes = []
         self.previous_processes = []  
         self.scheduler = Scheduler(self.processes)
@@ -22,6 +24,7 @@ class SchedulerGUI:
         self.figure = None 
         self.canvas = None 
         self.ani = None  
+        self.initial_processes = None
         self.y_positions = {} 
         self.configure_root()
         self.create_widgets()
@@ -182,14 +185,22 @@ class SchedulerGUI:
     def restart_simulation(self):
         """Reset simulation state but retain user input processes"""
         # Clear previous performance metrics
+        self.processes = copy.deepcopy(self.initial_processes)
+        self.execution_log = [] 
+        self.context_switches = 0
         self.performance_metrics = []
         self.output_text.delete("1.0", tk.END)
-
+        self.current_gantt_window = None
         # Destroy the Gantt chart (if it exists)
         if self.canvas is not None:
             self.canvas.get_tk_widget().destroy()
             self.canvas = None
-
+        # for process in self.processes:
+        #     process.start_time = None
+        #     process.completion_time = None
+        #     process.waiting_time = None
+        #     process.turnaround_time = None
+        #     process.response_time = None
         # Recreate the Gantt chart area
         self.create_gantt_chart_area()
 
@@ -278,8 +289,8 @@ class SchedulerGUI:
         button3.grid(row=7, column=0, pady=8, padx=2)
 
         button4 = tk.Button(
-            self.metrics_frame, text="Overall Compare", font=("Helvetica", 14),
-            bg="#f4cccc", command=self.plot_overall_comparison
+            self.metrics_frame, text="Radar Compare", font=("Helvetica", 14),
+            bg="#f4cccc", command=self.plot_radar_chart
         )
         button4.grid(row=7, column=1, pady=8, padx=2, sticky="ew")
 
@@ -344,15 +355,15 @@ class SchedulerGUI:
 
                 # Add start time label
                 self.ax.text(
-                    task_start, y_pos + 0.2, f"S: {task_start}",
-                    va="center", ha="center", fontsize=10, color="black"
+                    task_start, y_pos + 0.7, f"S: {task_start}",
+                    va="top", ha="center", fontsize=10, color="black"
                 )
 
                 # Add end time label when the task is completed or on the last frame
                 if current_time >= task_end or frame == int((max(t["start"] + t["duration"] for t in tasks)) / time_step) - 1:
                     self.ax.text(
-                        task_end, y_pos + 0.2, f"E: {task_end}",
-                        va="center", ha="center", fontsize=10, color="black"
+                        task_end, y_pos - 0.7, f"E: {task_end}",
+                        va="bottom", ha="center", fontsize=10, color="black"
                     )
 
         # Set time range and task range
@@ -448,12 +459,38 @@ class SchedulerGUI:
         if not algorithm:
             messagebox.showerror("Error", "Please select a scheduling algorithm.")
             return
+        if not self.processes:
+            messagebox.showerror("Error", "No tasks to process. Please check your input.")
+            return
+        print("Initial state of self.processes:")
+        if not self.processes or len(self.processes) == 0:
+            print("self.processes is empty.")
+        else:
+            for process in self.processes:
+                print(f"PID: {process.pid}, Arrival: {process.arrival_time}, Burst: {process.burst_time}, Priority: {process.priority}")
+
+        if not hasattr(self, 'initial_processes') or self.initial_processes is None:
+            self.initial_processes = copy.deepcopy(self.processes)
+            print("Initial processes saved:")
+            for process in self.initial_processes:
+                print(f"PID: {process.pid}, Arrival: {process.arrival_time}, Burst: {process.burst_time}, Priority: {process.priority}")
+        else:
+            print("Initial processes already exist.")
+
+        self.restart_simulation()
+        if not self.processes:
+            print("Error: No processes to calculate performance metrics2.")
+            return
+
+         # Remaining scheduling logic...
+        print("Processes before running algorithm:")
+        for process in self.processes:
+            print(f"PID: {process.pid}, Arrival: {process.arrival_time}, Burst: {process.burst_time}, Priority: {process.priority}")
 
         # Validate the time slice for Round Robin
         if algorithm == "Round Robin" and (not time_quantum.isdigit() or int(time_quantum) <= 0):
             messagebox.showerror("Error", "Please enter a valid positive integer for the time quantum.")
             return
-        self.restart_simulation()
         # Initialize the scheduler and processes
         scheduler = Scheduler(self.processes)
         quantum = int(time_quantum) if time_quantum.isdigit() else None
@@ -544,13 +581,28 @@ class SchedulerGUI:
             row += 1
 
     def plot_avg_waiting_time(self):
+        if self.current_gantt_window:
+            plt.close(self.current_gantt_window)
+            self.current_gantt_window = None  
         self.visualizer.plot_avg_waiting_time() 
 
     def plot_avg_turnaround_time(self):
+        if self.current_gantt_window:
+            plt.close(self.current_gantt_window)
+            self.current_gantt_window = None  
         self.visualizer.plot_avg_turnaround_time() 
 
     def plot_avg_response_time(self):
+        if self.current_gantt_window:
+            plt.close(self.current_gantt_window)
+            self.current_gantt_window = None  
         self.visualizer.plot_avg_response_time()  
+
+    def plot_radar_chart(self):
+        if self.current_gantt_window:
+            plt.close(self.current_gantt_window)
+            self.current_gantt_window = None  
+        self.visualizer.plot_radar_chart()
 
     def plot_overall_comparison(self):
         self.visualizer.plot_overall_comparison()  
