@@ -1,7 +1,5 @@
 # src/gui.py
 import copy
-
-
 import tkinter as tk
 from tkinter import ttk, messagebox
 from scheduler import Scheduler
@@ -469,7 +467,7 @@ class SchedulerGUI:
             for process in self.processes:
                 print(f"PID: {process.pid}, Arrival: {process.arrival_time}, Burst: {process.burst_time}, Priority: {process.priority}")
 
-        if not hasattr(self, 'initial_processes') or self.initial_processes is None:
+        if not hasattr(self, 'initial_processes') or self.initial_processes is None or self.input_has_changed():
             self.initial_processes = copy.deepcopy(self.processes)
             print("Initial processes saved:")
             for process in self.initial_processes:
@@ -555,6 +553,23 @@ class SchedulerGUI:
         self.show_gantt_chart(tasks)
         self.visualizer.run_all_algorithms(self.processes,scheduler)
 
+    def input_has_changed(self):
+        """Check if the user has provided new task input."""
+        if not hasattr(self, 'initial_processes') or not self.initial_processes:
+            return True  # No initial processes saved yet
+        
+        # Compare current processes with initial processes
+        if len(self.processes) != len(self.initial_processes):
+            return True
+
+        for p1, p2 in zip(self.processes, self.initial_processes):
+            if (p1.pid != p2.pid or
+                p1.arrival_time != p2.arrival_time or
+                p1.burst_time != p2.burst_time or
+                p1.priority != p2.priority):
+                return True
+
+        return False
 
     def validate_time_quantum(self, event=None):
         """Validate the Time Quantum field based on selected algorithm"""
