@@ -574,6 +574,7 @@ class SchedulerGUI:
 
         return False
 
+
     def validate_time_quantum(self, event=None):
         """Validate the Time Quantum field based on selected algorithm"""
         selected_algorithm = self.algorithm_var.get()
