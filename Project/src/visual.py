@@ -71,10 +71,10 @@ class Visualizer:
 
         self.current_figure = plt.figure() 
         bars = plt.bar(algorithms, avg_waiting_times, color='skyblue')
-        plt.title("Average Waiting Time Comparison", fontsize=16, fontweight='bold')
+        plt.title("Average Waiting Time", fontsize=15, fontweight='bold')
         plt.xlabel("Algorithms", fontsize=14, fontweight='bold')
         plt.ylabel("Average Waiting Time", fontsize=14, fontweight='bold')
-        plt.xticks(rotation=30, fontsize=12, fontweight='bold')
+        plt.xticks(rotation=30, fontsize=12)
 
         # Add data labels on top of each bar
         for bar in bars:
@@ -93,10 +93,10 @@ class Visualizer:
 
         self.current_figure = plt.figure()
         bars = plt.bar(algorithms, avg_turnaround_times, color='lightgreen')
-        plt.title("Average Turnaround Time Comparison", fontsize=16, fontweight='bold')
+        plt.title("Average Turnaround Time", fontsize=15, fontweight='bold')
         plt.xlabel("Algorithms", fontsize=14, fontweight='bold')
         plt.ylabel("Average Turnaround Time", fontsize=14, fontweight='bold')
-        plt.xticks(rotation=30, fontsize=12, fontweight='bold')
+        plt.xticks(rotation=30, fontsize=12)
 
         # Add data labels on top of each bar
         for bar in bars:
@@ -114,10 +114,10 @@ class Visualizer:
 
         self.current_figure = plt.figure()
         bars = plt.bar(algorithms, avg_response_times, color='orange')
-        plt.title("Average Response Time Comparison", fontsize=16, fontweight='bold')
+        plt.title("Average Response Time", fontsize=15, fontweight='bold')
         plt.xlabel("Algorithms", fontsize=14, fontweight='bold')
         plt.ylabel("Average Response Time", fontsize=14, fontweight='bold')
-        plt.xticks(rotation=30, fontsize=12, fontweight='bold')
+        plt.xticks(rotation=30, fontsize=12)
 
         # Add data labels on top of each bar
         for bar in bars:
@@ -150,7 +150,7 @@ class Visualizer:
 
         # Average Turnaround Time
         bars = axs[1].bar(algorithms, avg_turnaround_times, color='lightgreen')
-        axs[1].set_title("Average Turnaround Time Comparison", fontsize=14, fontweight='bold')
+        axs[1].set_title("Average Turnaround Time", fontsize=15, fontweight='bold')
         axs[1].set_xlabel("Algorithms", fontsize=12)
         axs[1].set_ylabel("Average Turnaround Time", fontsize=12)
         axs[1].tick_params(axis='x', labelrotation=30, labelsize=10)
@@ -183,7 +183,6 @@ class Visualizer:
     def plot_radar_chart(self):
         """Plot a radar chart to compare algorithm performance on multiple metrics."""
         self.close_previous_figure()
-        plt.close(self.current_gantt_window)
         # Prepare data for radar chart
         algorithms = [algo['name'] for algo in self.performance_metrics]
         metrics = ["Average Waiting Time", "Average Turnaround Time", "Average Response Time"]
