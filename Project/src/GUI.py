@@ -26,7 +26,8 @@ class SchedulerGUI:
         self.y_positions = {} 
         self.configure_root()
         self.create_widgets()
-        self.visualizer = Visualizer() 
+        self.visualizer = Visualizer()
+         
 
     def configure_root(self):
         """Configure the background color and grid layout of the main window"""
@@ -180,13 +181,14 @@ class SchedulerGUI:
         # Clear algorithm selection and time quantum
         self.algorithm_var.set("")
         self.time_quantum.delete(0, tk.END)
+        
     def restart_simulation(self):
         """Reset simulation state but retain user input processes"""
         # Clear previous performance metrics
         self.processes = copy.deepcopy(self.initial_processes)
-        self.execution_log = [] 
+        self.visualizer.performance_metrics=[]
+        self.scheduler.execution_log = [] 
         self.context_switches = 0
-        self.performance_metrics = []
         self.output_text.delete("1.0", tk.END)
         self.current_gantt_window = None
         # Destroy the Gantt chart (if it exists)
@@ -209,7 +211,6 @@ class SchedulerGUI:
 
         # Retain process input data (no need to clear the `self.processes` list)
         self.output_text.insert(tk.END, "Simulation state cleared. Ready to run again with existing processes.\n")
-
 
     def reload_last_simulation(self):
         """Reload the process data from the last run"""
@@ -460,14 +461,18 @@ class SchedulerGUI:
         if not self.processes:
             messagebox.showerror("Error", "No tasks to process. Please check your input.")
             return
-        print("Initial state of self.processes:")
-        if not self.processes or len(self.processes) == 0:
-            print("self.processes is empty.")
-        else:
-            for process in self.processes:
-                print(f"PID: {process.pid}, Arrival: {process.arrival_time}, Burst: {process.burst_time}, Priority: {process.priority}")
-
+        # print("Initial state of self.processes:")
+        # if not self.processes or len(self.processes) == 0:
+        #     print("self.processes is empty.")
+        # else:
+        #     for process in self.processes:
+        #         print(f"PID: {process.pid}, Arrival: {process.arrival_time}, Burst: {process.burst_time}, Priority: {process.priority}")
+        plt.close(self.current_gantt_window)
         if not hasattr(self, 'initial_processes') or self.initial_processes is None or self.input_has_changed():
+            if self.current_gantt_window:
+                plt.close(self.current_gantt_window)
+                print("Closing current gantt window.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+                self.current_gantt_window = None 
             self.initial_processes = copy.deepcopy(self.processes)
             print("Initial processes saved:")
             for process in self.initial_processes:
@@ -481,9 +486,9 @@ class SchedulerGUI:
             return
 
          # Remaining scheduling logic...
-        print("Processes before running algorithm:")
-        for process in self.processes:
-            print(f"PID: {process.pid}, Arrival: {process.arrival_time}, Burst: {process.burst_time}, Priority: {process.priority}")
+        # print("Processes before running algorithm:")
+        # for process in self.processes:
+        #     print(f"PID: {process.pid}, Arrival: {process.arrival_time}, Burst: {process.burst_time}, Priority: {process.priority}")
 
         # Validate the time slice for Round Robin
         if algorithm == "Round Robin" and (not time_quantum.isdigit() or int(time_quantum) <= 0):
@@ -554,7 +559,24 @@ class SchedulerGUI:
             plt.close(self.current_gantt_window)
             self.current_gantt_window = None
         self.show_gantt_chart(tasks)
-        self.visualizer.run_all_algorithms(self.processes,scheduler)
+        # print("Processes before running visual:")
+        # for process in self.processes:
+        #     print(f"Process {process.pid} attributes:")
+        #     for attr, value in vars(process).items():
+        #         print(f"  {attr}: {value}")
+        #     print("-" * 40)  # Separator for better readability
+
+        #     # Pass a deep copy of processes to run_all_algorithms
+        processes_copy = copy.deepcopy(self.processes)
+        scheduler_copy = copy.deepcopy(self.scheduler)
+        self.visualizer.run_all_algorithms(scheduler_copy.processes, scheduler_copy)
+        # print("Processes after running visual:")
+        # for process in self.processes:
+        #     print(f"Process {process.pid} attributes:")
+        #     for attr, value in vars(process).items():
+        #         print(f"  {attr}: {value}")
+        #     print("-" * 40)  # Separator for better readability
+
 
     def input_has_changed(self):
         """Check if the user has provided new task input."""

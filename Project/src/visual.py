@@ -14,7 +14,7 @@ class Visualizer:
 
     def run_all_algorithms(self, task_set, scheduler):
         """Run all algorithms on the same task set and collect performance data"""
-        \
+        
         # List of algorithms with an indication of whether they are Round Robin
         algorithms = [
             ("FCFS", scheduler.fcfs, None),  # No quantum for non-Round Robin

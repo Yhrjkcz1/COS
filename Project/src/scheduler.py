@@ -55,7 +55,7 @@ class Scheduler:
                     shortest_process.start_time = current_time
                     shortest_process.response_time = shortest_process.start_time - shortest_process.arrival_time  # Calculate response time
                     self.response_times.append(shortest_process.response_time)  # Add to response_times
-                    print(f"Process {shortest_process.pid} started at {shortest_process.start_time}")
+                    # print(f"Process {shortest_process.pid} started at {shortest_process.start_time}")
 
                 shortest_process.waiting_time = current_time - shortest_process.arrival_time
                 current_time += shortest_process.burst_time
@@ -104,7 +104,7 @@ class Scheduler:
                     self.response_times.append(shortest_process.response_time)  # Add to response_times
                     if last_process != shortest_process:  # If it's a different process, increment context switch
                         self.context_switches += 1
-                    print(f"Process {shortest_process.pid} started at {shortest_process.start_time}")
+                    # print(f"Process {shortest_process.pid} started at {shortest_process.start_time}")
 
                 # Execute process for 1 time unit
                 start_time = current_time
@@ -231,7 +231,7 @@ class Scheduler:
                         if process.remaining_time > 0:
                             queue.append(queue.pop(0))  # Move this process to the end of the queue
                             self.context_switches += 1  # Count the context switch
-                            print(f"Context switch at time {current_time}")
+                            # print(f"Context switch at time {current_time}")
                         else:
                             # Process has completed
                             process.completion_time = current_time
