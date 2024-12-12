@@ -29,20 +29,31 @@
 
 ## Usage Instructions
 
-1. **Add Processes**:
+1. **Installation**:
+   - Clone or download the project repository to your local machine.
+   - Ensure you have Python 3.8 or higher installed along with the required libraries (see System Requirements).
+
+2. **Run the GUI**:
+   - Navigate to the project directory in your terminal or command prompt.
+   - Execute the following command to launch the GUI:
+     ```bash
+     python GUI.py
+     ```
+
+3. **Add Processes**:
    - Input process details, including `Process ID`, `Arrival Time`, `Burst Time`, and (optional) `Priority`.
    - Click the `Add Process` button to add the process to the queue.
 
-2. **Select Scheduling Algorithm**:
+4. **Select Scheduling Algorithm**:
    - Use the `Choose Algorithm` dropdown menu to select an algorithm (e.g., FCFS, Non-Preemptive SJF, etc.).
 
-3. **Run Simulation**:
+5. **Run Simulation**:
    - For Round Robin, set the time quantum. Then click the `Run Simulation` button to start the simulation.
 
-4. **View Results**:
+6. **View Results**:
    - The dynamic Gantt chart visualizes the scheduling process, and performance metrics are displayed on the right panel.
 
-5. **Reset or Reload Data**:
+7. **Reset or Reload Data**:
    - Use the `Reset` button to clear all data or the `Reload` button to restore the previous process queue.
 
 ---
@@ -86,8 +97,8 @@
 
 ### Install Required Libraries
 
-1. Run the following command to install all necessary libraries: 
+Run the following command to install all necessary libraries:
+```bash
 pip install matplotlib numpy
-
-
+```
 

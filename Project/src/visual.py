@@ -212,7 +212,7 @@ class Visualizer:
         ax.set_yticks([0.2, 0.4, 0.6, 0.8, 1.0])
         ax.set_yticklabels(["20%", "40%", "60%", "80%", "100%"])
         ax.set_xticks(angles[:-1])
-        ax.set_xticklabels(metrics, fontsize=10, fontweight='bold')
+        ax.set_xticklabels(metrics, fontsize=14, fontweight='bold')
 
         ax.set_title("Algorithm Performance Radar Chart", fontsize=16, fontweight='bold', pad=20)
         ax.legend(loc='upper right', bbox_to_anchor=(1.2, 1.1))

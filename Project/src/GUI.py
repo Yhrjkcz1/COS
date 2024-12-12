@@ -28,7 +28,6 @@ class SchedulerGUI:
         self.create_widgets()
         self.visualizer = Visualizer()
          
-
     def configure_root(self):
         """Configure the background color and grid layout of the main window"""
         self.root.configure(bg="#f4f4f4")
@@ -471,7 +470,7 @@ class SchedulerGUI:
         if not hasattr(self, 'initial_processes') or self.initial_processes is None or self.input_has_changed():
             if self.current_gantt_window:
                 plt.close(self.current_gantt_window)
-                print("Closing current gantt window.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+                print("Closing current gantt window.")
                 self.current_gantt_window = None 
             self.initial_processes = copy.deepcopy(self.processes)
             print("Initial processes saved:")
@@ -577,7 +576,6 @@ class SchedulerGUI:
         #         print(f"  {attr}: {value}")
         #     print("-" * 40)  # Separator for better readability
 
-
     def input_has_changed(self):
         """Check if the user has provided new task input."""
         if not hasattr(self, 'initial_processes') or not self.initial_processes:
@@ -596,7 +594,6 @@ class SchedulerGUI:
 
         return False
 
-
     def validate_time_quantum(self, event=None):
         """Validate the Time Quantum field based on selected algorithm"""
         selected_algorithm = self.algorithm_var.get()
@@ -608,6 +605,7 @@ class SchedulerGUI:
             # Disable the time quantum entry field and clear it if another algorithm is selected
             self.time_quantum.config(state="disabled")
             self.time_quantum.delete(0, tk.END)
+
     def display_metrics(self, metrics):
         """Display performance indicators"""
         for widget in self.metrics_frame.winfo_children():
